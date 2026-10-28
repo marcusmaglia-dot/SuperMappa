@@ -35,27 +35,27 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="gate-senha">Senha do Paxtu</label>
+          <label class="form-label" for="gate-senha">Senha do Paxtu / mAPPa</label>
           <input type="password" id="gate-senha" class="form-input" placeholder="••••••••••••" required autocomplete="current-password">
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="gate-ramo">Seção / Ramo para Consulta</label>
-          <select id="gate-ramo" class="form-select">
-            <option value="Escoteiro">Tropa Escoteira (11 a 14 anos)</option>
-            <option value="Lobinho">Alcatéia de Lobinhos (6.5 a 10 anos)</option>
-            <option value="Senior">Tropa Sênior (15 a 17 anos)</option>
-            <option value="Pioneiro">Clã Pioneiro (18 a 20 anos)</option>
-          </select>
+        <!-- Indicador de progresso e log da extração de dados -->
+        <div id="login-sync-progress" style="display: none; margin-bottom: 1rem; background: rgba(11,20,17,0.8); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.8rem; text-align: left;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; color: var(--scout-gold-light); font-weight: 700;">
+            <span class="status-dot"></span>
+            <span id="sync-step-title">Conectando ao Paxtu 100...</span>
+          </div>
+          <div id="sync-step-log" style="font-family: 'Fira Code', monospace; font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; max-height: 80px; overflow-y: auto;">
+          </div>
         </div>
 
         <button type="submit" class="btn btn-ninja btn-submit-paxtu" id="btn-gate-submit">
-          <span>📥</span> Conectar e Baixar Dados do Paxtu
+          <span>📥</span> Conectar e Buscar Dados no Paxtu / mAPPa
         </button>
 
         <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
           <span>🔒 Conexão Segura TLS 1.3</span>
-          <span style="color: var(--brand-green-light); font-weight: 600;">Escoteiros do Brasil</span>
+          <span style="color: var(--brand-green-light); font-weight: 600;">API mAPPa &bull; Paxtu 100</span>
         </div>
       </form>
     </div>
@@ -82,6 +82,10 @@
             <span id="header-status-text">Paxtu Sincronizado</span>
           </div>
 
+          <button class="btn btn-outline" style="font-size: 0.85rem; padding: 0.4rem 0.9rem;" onclick="abrirModalInspecaoPaxtu()" title="Ver requisições e payloads retornados pela API oficial do Paxtu / mAPPa">
+            <span>📡</span> Inspecionar API Paxtu
+          </button>
+
           <button class="btn btn-outline" style="font-size: 0.85rem; padding: 0.4rem 0.9rem;" onclick="reimportarDadosPaxtu()" title="Recarregar dados do banco de dados oficial do Paxtu">
             <span>🔄</span> Atualizar Dados
           </button>
@@ -100,14 +104,18 @@
       <section class="unidade-info-banner" id="unidade-banner">
         <div class="unidade-title-group">
           <h2>
-            <span>🏕️</span> <span id="banner-grupo-nome">123º Grupo Escoteiro Brownsea</span>
+            <span>🏕️</span> <span id="banner-grupo-nome">Carregando dados da UEL...</span>
           </h2>
           <p id="banner-secao-desc">
-            Numeral: <strong>123º/SP</strong> • Seção: <strong id="banner-secao-nome">Tropa Escoteira Baden-Powell</strong> • Ramo: <strong id="banner-ramo-nome">Escoteiro</strong>
+            Numeral: <strong id="banner-numeral">--</strong> • Seção Ativa: 
+            <select id="select-secao-ativa" class="filter-select" onchange="trocarSecaoAtiva(this.value)" style="display: inline-block; padding: 3px 8px; font-size: 0.85rem; background: rgba(11,20,17,0.9); margin: 0 4px;">
+              <option value="">Carregando seções...</option>
+            </select> • 
+            Ramo: <strong id="banner-ramo-nome">--</strong>
           </p>
           <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
             <span>📅 Dados importados em: <strong id="banner-sync-time" style="color: #94a3b8;">--</strong></span> • 
-            <span style="color: var(--brand-green-light); font-weight: 600;">✔️ Fonte: Banco de Dados Paxtu 100</span>
+            <span style="color: var(--brand-green-light); font-weight: 600;">✔️ Fonte: API Oficial Paxtu 100 / mAPPa</span>
           </div>
         </div>
 
@@ -264,6 +272,55 @@
             🔒 Registro oficial consultivo sincronizado via Paxtu 100 • Somente Leitura
           </span>
           <button class="btn btn-outline" onclick="fecharFichaJovemConsultiva()">Fechar Ficha</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Inspeção da API Oficial Paxtu 100 / mAPPa -->
+    <div class="modal-overlay" id="modal-inspecao-paxtu">
+      <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.3rem;">📡</span>
+            <div>
+              <h3 style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0;">Inspeção de Rede &bull; API Paxtu 100 / mAPPa</h3>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Comunicação direta com endpoints oficiais da UEB</div>
+            </div>
+          </div>
+          <button class="btn btn-outline" style="padding: 2px 8px; font-size: 1.1rem;" onclick="fecharModalInspecaoPaxtu()">&times;</button>
+        </div>
+
+        <div class="modal-body" style="padding: 1rem; max-height: 70vh; overflow-y: auto;">
+          <div style="background: rgba(11,20,17,0.7); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.75rem; margin-bottom: 1rem; font-size: 0.8rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <span>Base URL Paxtu: <strong style="color: #38bdf8;" id="insp-base-url">https://paxtu100.escoteiros.org.br</strong></span>
+              <span id="insp-status-badge" class="brand-badge">200 OK</span>
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.75rem;">
+              Token de Sessão: <span id="insp-token-preview" style="font-family: 'Fira Code', monospace; color: var(--scout-gold-light);">--</span>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 0.5rem; font-size: 0.82rem; font-weight: 700; color: var(--text-secondary);">
+            Log de Requisições da Sessão:
+          </div>
+          <div id="insp-requests-log" style="font-family: 'Fira Code', monospace; font-size: 0.75rem; background: #070d0b; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem; max-height: 200px; overflow-y: auto; color: #a7f3d0; margin-bottom: 1rem;">
+            Nenhuma requisição registrada ainda.
+          </div>
+
+          <div style="margin-bottom: 0.5rem; font-size: 0.82rem; font-weight: 700; color: var(--text-secondary);">
+            Payload Bruto Recebido (JSON):
+          </div>
+          <pre id="insp-payload-raw" style="font-family: 'Fira Code', monospace; font-size: 0.75rem; background: #070d0b; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem; max-height: 250px; overflow-y: auto; color: #f8fafc; white-space: pre-wrap; word-break: break-all;">
+{ "status": "Aguardando login..." }
+          </pre>
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.75rem; color: var(--text-muted);">
+            Headers: X-App-Token (mAPPa Oficial) &bull; Authorization: Bearer
+          </span>
+          <button class="btn btn-outline" onclick="fecharModalInspecaoPaxtu()">Fechar</button>
         </div>
       </div>
     </div>
