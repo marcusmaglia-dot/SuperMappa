@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="SuperMappa — Acesse o Mappa escoteiro com funções ninjas para a chefia. Validação em lote, chamada de seção e documentação de arquitetura.">
+  <meta name="description" content="SuperMappa — Portal Consultivo Oficial da Chefia com sincronização de dados oficiais do Paxtu 100 dos Escoteiros do Brasil.">
   <meta name="theme-color" content="#10b981">
-  <title>SuperMappa — Funções Ninjas para a Chefia & Documentação</title>
+  <title>SuperMappa — Portal Consultivo Paxtu 100</title>
   
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,16 +13,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
   
   <!-- CSS Styles com cache buster -->
-  <link rel="stylesheet" href="styles.css?v=3.1">
+  <link rel="stylesheet" href="styles.css?v=4.0">
 </head>
 <body>
 
-  <!-- TELA DEDICADA DE LOGIN NO PAXTU 100 (GATEKEEPER) -->
+  <!-- TELA DEDICADA DE LOGIN NO PAXTU 100 (GATEKEEPER OBRIGATÓRIO) -->
   <section id="screen-login" class="login-screen-wrapper">
     <div class="login-card-gate">
       <div class="brand-symbol">⚜️</div>
-      <h2>mAPPa / Paxtu 100</h2>
-      <p class="sub-text">Acesso da Chefia — Gestão de Seção e Chamada em Lote</p>
+      <h2>SuperMappa / Paxtu 100</h2>
+      <p class="sub-text">Portal 100% Consultivo da Chefia — Consulta Oficial de Dados</p>
+
+      <div class="login-notice-box" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #a7f3d0; text-align: left; line-height: 1.5;">
+        <span>🔒</span> <strong>Aplicativo Totalmente Consultivo:</strong> Conecte-se com suas credenciais do Paxtu para baixar diretamente os registros oficiais da sua Unidade Escoteira, Ramo, Seção, Patrulhas, Jovens e histórico de progressão.
+      </div>
 
       <form id="paxtu-gate-form" onsubmit="event.preventDefault(); processarLoginGatekeeper();">
         <div class="form-group">
@@ -36,7 +40,7 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="gate-ramo">Seção / Ramo de Atuação</label>
+          <label class="form-label" for="gate-ramo">Seção / Ramo para Consulta</label>
           <select id="gate-ramo" class="form-select">
             <option value="Escoteiro">Tropa Escoteira (11 a 14 anos)</option>
             <option value="Lobinho">Alcatéia de Lobinhos (6.5 a 10 anos)</option>
@@ -46,7 +50,7 @@
         </div>
 
         <button type="submit" class="btn btn-ninja btn-submit-paxtu" id="btn-gate-submit">
-          <span>🔑</span> Entrar no Paxtu 100
+          <span>📥</span> Conectar e Baixar Dados do Paxtu
         </button>
 
         <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
@@ -57,585 +61,221 @@
     </div>
   </section>
 
-  <!-- ÁREA DA APLICAÇÃO SUPERMAPPA (EXIBIDA APÓS O LOGIN) -->
+  <!-- ÁREA DA APLICAÇÃO CONSULTIVA SUPERMAPPA (EXIBIDA APÓS O LOGIN E DOWNLOAD) -->
   <div id="screen-app" style="display: none;">
 
-  <!-- App Header -->
-  <header class="app-header">
-    <div class="header-container">
-      <div class="brand-box">
-        <div class="brand-icon">⚡</div>
-        <div>
-          <h1 class="brand-title">SuperMappa</h1>
-          <span class="brand-badge">Funções Ninjas para Chefia</span>
+    <!-- App Header Consultivo (Sem abas de documentação ou engenharia) -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="brand-box">
+          <div class="brand-icon">⚜️</div>
+          <div>
+            <h1 class="brand-title">SuperMappa</h1>
+            <span class="brand-badge">Portal Consultivo Paxtu</span>
+          </div>
+        </div>
+
+        <!-- Ações do Header (Atualizar dados e Logout) -->
+        <div class="header-actions">
+          <div class="status-pill" id="header-status-pill">
+            <span class="status-dot"></span>
+            <span id="header-status-text">Paxtu Sincronizado</span>
+          </div>
+
+          <button class="btn btn-outline" style="font-size: 0.85rem; padding: 0.4rem 0.9rem;" onclick="reimportarDadosPaxtu()" title="Recarregar dados do banco de dados oficial do Paxtu">
+            <span>🔄</span> Atualizar Dados
+          </button>
+
+          <button class="btn btn-outline" style="font-size: 0.85rem; padding: 0.4rem 0.9rem; border-color: rgba(239, 68, 68, 0.4); color: #f87171;" onclick="fazerLogoutPaxtu()" title="Encerrar sessão de consulta">
+            <span>🚪</span> Sair
+          </button>
         </div>
       </div>
+    </header>
 
-      <!-- Navigation Tabs -->
-      <nav class="nav-tabs" aria-label="Navegação Principal">
-        <button class="nav-tab-btn active" data-target="tab-app" id="btn-tab-app">
-          <span>⚡</span> Validação em Lote (1 Clique)
-        </button>
-        <button class="nav-tab-btn" data-target="tab-arquitetura" id="btn-tab-arquitetura">
-          <span>🏛️</span> Arquitetura & C4
-        </button>
-        <button class="nav-tab-btn" data-target="tab-specs" id="btn-tab-specs">
-          <span>📦</span> Specs SDD (9 Módulos)
-        </button>
-        <button class="nav-tab-btn" data-target="tab-forward" id="btn-tab-forward">
-          <span>🚀</span> Feature 001 & Roadmap
-        </button>
-      </nav>
+    <!-- Main Content Consultivo -->
+    <main class="main-container">
 
-      <!-- Sync Status Indicator -->
-      <div class="sync-indicator-bar" id="sync-bar">
-        <span class="sync-dot"></span>
-        <span id="sync-label">Tudo sincronizado</span>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Content Area -->
-  <main class="main-container">
-
-    <!-- ABA 1: Aplicação Funcional SuperMappa (Batch Validation) -->
-    <section id="tab-app" class="tab-pane active">
-      
-      <!-- Área de Autenticação da Chefia no Paxtu 100 -->
-      <div id="chefia-auth-container">
-        <!-- Renderizado dinamicamente via app.js -->
-      </div>
-
-      <!-- Counters Summary Bar -->
-      <div class="counters-bar">
-        <div class="stat-box">
-          <div class="stat-value" id="stat-presentes" style="color: var(--status-presente);">0</div>
-          <div class="stat-label">Jovens Presentes</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-ausentes" style="color: var(--status-ausente);">0</div>
-          <div class="stat-label">Ausentes</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-justificados" style="color: var(--status-justificado);">0</div>
-          <div class="stat-label">Justificados</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-value" id="stat-validacoes" style="color: var(--scout-gold-light);">0</div>
-          <div class="stat-label">Homologações Estimadas</div>
-        </div>
-      </div>
-
-      <div class="grid-2col">
-        
-        <!-- Painel de Dados da Atividade e Itens Trabalhados -->
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title"><span>📋</span> Dados da Atividade da Seção</h2>
-            <button class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;" onclick="appState.resetarAtividade(); location.reload();">Reiniciar</button>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="input-atividade-titulo">Título da Atividade</label>
-            <input type="text" id="input-atividade-titulo" class="form-input">
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label" for="input-atividade-data">Data</label>
-              <input type="date" id="input-atividade-data" class="form-input">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="select-atividade-ramo">Ramo Ativo</label>
-              <select id="select-atividade-ramo" class="form-select">
-                <option value="Escoteiro">Ramo Escoteiro (11 a 14 anos)</option>
-                <option value="Lobinho">Ramo Lobinho (6.5 a 10 anos)</option>
-                <option value="Senior">Ramo Sênior (15 a 17 anos)</option>
-                <option value="Pioneiro">Ramo Pioneiro (18 a 20 anos)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="input-atividade-desc">Descrição / Objetivos Pedagógicos</label>
-            <textarea id="input-atividade-desc" class="form-textarea" rows="2"></textarea>
-          </div>
-
-          <!-- Seção de Itens Vinculados à Atividade -->
-          <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <label class="form-label" style="margin: 0; font-weight: 700; color: var(--text-primary);">
-                Itens de Progressão & Especialidades Trabalhados
-              </label>
-              <button class="btn btn-primary" style="font-size: 0.8rem; padding: 4px 12px;" onclick="abrirModalSeletorItens()">
-                <span>➕</span> Adicionar Itens
-              </button>
-            </div>
-            
-            <div id="itens-chips-container" class="chips-container">
-              <!-- Renderizado via app.js -->
-            </div>
-          </div>
-
-          <!-- Ação Principal de Homologação em Lote -->
-          <div style="margin-top: 2rem; padding: 1.25rem; background: rgba(11,20,17,0.7); border-radius: var(--radius-md); border: 1px solid rgba(245, 158, 11, 0.3);">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-              <div>
-                <h3 style="color: var(--scout-gold-light); font-size: 1rem; margin-bottom: 2px;">⚡ Concluir e Validar em 1 Clique</h3>
-                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Homologa todos os itens para os jovens presentes de forma idempotente e segura.</p>
-              </div>
-              <button class="btn btn-ninja" onclick="abrirModalConfirmacaoValidacao()" id="btn-homologar-lote">
-                <span>⚡</span> Validar em 1 Clique
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Painel de Chamada de Presença da Seção -->
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title"><span>👥</span> Lista de Chamada da Seção</h2>
-            <div style="display: flex; gap: 0.4rem;">
-              <button class="btn btn-primary" style="font-size: 0.75rem; padding: 3px 8px;" onclick="abrirModalAdicionarJovem()">➕ Novo Jovem</button>
-              <button class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" onclick="marcarTodos('presente')">Todos Presentes</button>
-              <button class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" onclick="marcarTodos('ausente')">Limpar</button>
-            </div>
-          </div>
-
-          <div id="attendance-empty-box" class="empty-state-box" style="display: none;">
-            <!-- Preenchido via app.js -->
-          </div>
-
-          <div style="overflow-x: auto;">
-            <table class="attendance-table" id="attendance-table-element" aria-label="Tabela de Presença">
-              <thead>
-                <tr>
-                  <th>Jovem / Registro UEB</th>
-                  <th>Patrulha</th>
-                  <th>Presença</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="attendance-tbody">
-                <!-- Populado dinamicamente via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Fila de Sincronização Offline / Paxtu -->
-      <div class="card" style="margin-top: 1.5rem;">
-        <div class="card-header">
-          <h2 class="card-title">
-            <span>🔄</span> Fila de Sincronização com Paxtu 
-            <span class="brand-badge" id="sync-pendencias-count">0</span>
+      <!-- Banner de Informações Oficiais da Unidade Escoteira & Seção -->
+      <section class="unidade-info-banner" id="unidade-banner">
+        <div class="unidade-title-group">
+          <h2>
+            <span>🏕️</span> <span id="banner-grupo-nome">123º Grupo Escoteiro Brownsea</span>
           </h2>
-          <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-primary" id="btn-sincronizar-paxtu" onclick="sincronizarFilaComPaxtu()" style="font-size: 0.8rem; padding: 4px 12px;">
-              <span>🚀</span> Sincronizar Fila Agora
-            </button>
-            <button class="btn btn-outline" onclick="limparFilaConcluida()" style="font-size: 0.8rem; padding: 4px 10px;">
-              Limpar Concluídos
-            </button>
+          <p id="banner-secao-desc">
+            Numeral: <strong>123º/SP</strong> • Seção: <strong id="banner-secao-nome">Tropa Escoteira Baden-Powell</strong> • Ramo: <strong id="banner-ramo-nome">Escoteiro</strong>
+          </p>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+            <span>📅 Dados importados em: <strong id="banner-sync-time" style="color: #94a3b8;">--</strong></span> • 
+            <span style="color: var(--brand-green-light); font-weight: 600;">✔️ Fonte: Banco de Dados Paxtu 100</span>
           </div>
         </div>
 
-        <div style="overflow-x: auto;">
-          <table class="attendance-table">
-            <thead>
-              <tr>
-                <th>Jovem Homologado</th>
-                <th>Tipo</th>
-                <th>Requisito Homologado</th>
-                <th>Hora</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="sync-tbody">
-              <!-- Renderizado via app.js -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ABA 2: Arquitetura & Engenharia Reversa (C4 & Topology) -->
-    <section id="tab-arquitetura" class="tab-pane">
-      <div class="doc-section">
-        <h2>🏛️ Arquitetura do Sistema mAPPa (Escoteiros do Brasil)</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-          Extraída diretamente pelo <strong>Arquiteto do Reversa</strong> com nível de confiança 🟢 <strong>CONFIRMADO</strong> a partir do binário compilado AOT <code>libapp.so</code> e assets decompilados.
-        </p>
-
-        <div class="grid-3col" style="margin-bottom: 1.5rem;">
-          <div class="stat-box">
-            <div class="stat-label">Camada Mobile</div>
-            <div style="font-size: 1.2rem; font-weight: 700; color: var(--brand-green-light); margin-top: 4px;">Flutter (Dart AOT)</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">GetX • Dio • Sqflite</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Integração Externa</div>
-            <div style="font-size: 1.2rem; font-weight: 700; color: var(--scout-gold-light); margin-top: 4px;">Paxtu 100 REST</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">paxtu100.escoteiros.org.br</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Nível de Confiança</div>
-            <div style="font-size: 1.2rem; font-weight: 700; color: #34d399; margin-top: 4px;">98% Auditado</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">9 Módulos Cobertos</div>
+        <div class="unidade-chefia-info">
+          <div class="chefia-avatar" id="banner-avatar-icon">⚜️</div>
+          <div>
+            <div style="font-size: 0.9rem; font-weight: 700; color: #fff;" id="banner-chefia-nome">Chefe Conectado</div>
+            <div style="font-size: 0.78rem; color: var(--text-secondary);" id="banner-chefia-ueb">UEB: -- • Escotista</div>
           </div>
         </div>
+      </section>
 
-        <h3>Topologia de Componentes (C4 Nível 2)</h3>
-        <pre class="code-block">
-+-----------------------------------------------------------------------------------+
-|                        mAPPa Mobile App (Flutter / Dart)                          |
-|                                                                                   |
-|  [ Apresentação ] ---> [ Gerência de Estado ] ---> [ Domínio / Casos de Uso ]     |
-|   (GetView/Widgets)       (GetX Controllers)        (GetItensRevisaoMappaCase)    |
-|                                                                |                  |
-|                                                                v                  |
-|  [ Sqflite Local ] <-------------------------------- [ Camada de Dados / Dio ]   |
-|   (Cache Offline)                                    (CookieJar / Interceptors)   |
-+----------------------------------------------------------------+------------------+
-                                                                 | HTTPS (REST API)
-                                                                 v
-+-----------------------------------------------------------------------------------+
-|                     Backend Institucional Paxtu 100 (UEB)                        |
-|                                                                                   |
-|   /api/auth/login        /api/secao/jovens        /api/marcar-item-revisao        |
-|   /api/progressao        /api/especialidades      /api/apf/atividades             |
-+-----------------------------------------------------------------------------------+
-        </pre>
-
-        <h3>Diagrama Entidade-Relacionamento Lógico (ERD)</h3>
-        <table class="doc-table">
-          <thead>
-            <tr>
-              <th>Entidade</th>
-              <th>Chaves & Atributos Principais</th>
-              <th>Relacionamentos</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>ASSOCIADO</strong></td>
-              <td><code>id_associado</code>, <code>registro_ueb</code>, <code>nome</code>, <code>ramo</code></td>
-              <td>Pertence a uma SEÇÃO; possui múltiplos CICLOS e ESPECIALIDADES</td>
-            </tr>
-            <tr>
-              <td><strong>SEÇÃO</strong></td>
-              <td><code>id_secao</code>, <code>nome_secao</code>, <code>ramo</code>, <code>id_grupo</code></td>
-              <td>Contém vários ASSOCIADOS; gerida por ESCOTISTAS da Seção</td>
-            </tr>
-            <tr>
-              <td><strong>COMPETENCIA_CICLO</strong></td>
-              <td><code>id_competencia</code>, <code>ramo</code>, <code>eixo</code>, <code>descricao</code></td>
-              <td>Vinculada ao Plano de Progressão do Jovem</td>
-            </tr>
-            <tr>
-              <td><strong>ASSOCIADO_ESPECIALIDADES</strong></td>
-              <td><code>id_associado</code>, <code>id_especialidade</code>, <code>nivel</code></td>
-              <td>Requisitos homologados individualmente ou em lote</td>
-            </tr>
-            <tr>
-              <td><strong>ITEM_REVISAO</strong></td>
-              <td><code>id_item</code>, <code>id_associado</code>, <code>status</code> (aprovado/pendente)</td>
-              <td>Fila de submissão do jovem para homologação da chefia</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ABA 3: Specs SDD (9 Módulos do Sistema) -->
-    <section id="tab-specs" class="tab-pane">
-      <div class="doc-section">
-        <h2>📦 Especificações SDD Extraídas (9 Unidades de Domínio)</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-          Cada módulo abaixo possui documentação completa de requisitos (<code>requirements.md</code>), arquitetura (<code>design.md</code>) e decomposição de tarefas (<code>tasks.md</code>) salva em <code>_reversa_sdd/</code>.
-        </p>
-
-        <div class="grid-3col">
-          
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">🔑 01. Auth & Sessão</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Autenticação via credenciais Paxtu, emissão de cookies de sessão, renovação de token e suporte a múltiplos perfis de acesso.</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">👤 02. Associado & Perfil</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Dados cadastrais, registro UEB, via de filiação, histórico associativo, grupo e seção de vinculação.</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">🧭 03. Jovem Progressão</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Ramos Lobinho, Escoteiro, Sênior e Pioneiro. Blocos de competências, eixos educativos (Conhecer, Fazer, Conviver, Ser).</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">🎖️ 04. Especialidades</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Catálogo oficial com mais de 100 especialidades em 5 ramos do conhecimento. Níveis 1, 2 e 3 por requisitos cumpridos.</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">⭐ 05. Insígnias Especiais</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Insígnias de Interesse Especial (Lustosa Cabral, Cruz de São Jorge, Cordões Vermelho e Branco, etc.).</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">📋 06. Adulto APF</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Acompanhamento Pessoal de Formação para escotistas e dirigentes. Níveis Básico, Intermediário e Avançado.</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">👨‍🏫 07. Monitor Escotista</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Área restrita da chefia para revisar itens submetidos pelos jovens, aprovar conquistas e gerenciar a seção.</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">🏕️ 08. Atividades</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Registro de atividades fixas e variáveis, acampamentos, excursões e calendário anual do grupo escoteiro.</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
-          <div class="card">
-            <h3 style="color: var(--brand-green-light); margin-top: 0;">💬 09. Comunicação</h3>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">Canal de mensagens institucionais, mural de avisos da patrulha e notificações push de eventos.</p>
-            <span class="item-chip">🟢 Confirmado</span>
-          </div>
-
+      <!-- Grade de Métricas da Seção -->
+      <section class="counters-grid">
+        <div class="stat-box">
+          <div class="stat-value" id="metric-total-jovens" style="color: var(--brand-green-light);">0</div>
+          <div class="stat-label">Jovens na Seção</div>
         </div>
-      </div>
-    </section>
+        <div class="stat-box">
+          <div class="stat-value" id="metric-total-patrulhas" style="color: var(--scout-gold-light);">0</div>
+          <div class="stat-label">Patrulhas Ativas</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="metric-total-especialidades" style="color: #38bdf8;">0</div>
+          <div class="stat-label">Especialidades Conquistadas</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="metric-media-progressao" style="color: #a78bfa;">0%</div>
+          <div class="stat-label">Média de Progressão</div>
+        </div>
+      </section>
 
-    <!-- ABA 4: Feature 001 - Forward & Roadmap -->
-    <section id="tab-forward" class="tab-pane">
-      <div class="doc-section">
-        <h2>🚀 Ciclo Forward: Feature 001 (Validação em Lote por Atividade)</h2>
-        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-          Implementação de alta produtividade para eliminar o retrabalho dos chefes escoteiros que precisavam lançar itens manualmente um a um.
-        </p>
+      <!-- Barra de Filtros e Busca de Jovens -->
+      <section class="filter-bar">
+        <div class="filter-group">
+          <label class="filter-label" for="filter-search">🔍 Buscar Jovem:</label>
+          <input type="text" id="filter-search" class="filter-input" placeholder="Nome ou Registro UEB..." oninput="filtrarJovensConsultivo()">
+        </div>
 
-        <h3>Rastreabilidade da Entrega (Tarefas T001 a T010 Concluídas)</h3>
-        <table class="doc-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Componente / Arquivo Alvo</th>
-              <th>Responsabilidade</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><code>T001</code></td>
-              <td><code>db_helper.dart</code></td>
-              <td>Schema SQLite local com tabelas para chamada, itens e fila Paxtu</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T002</code></td>
-              <td><code>offline_data_seeder.dart</code></td>
-              <td>Catálogo offline completo de especialidades e matriz de progressão</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T003</code></td>
-              <td><code>atividade_chamada_model.dart</code></td>
-              <td>Modelos DTOs com validações, regras de negócio e mapeamento SQLite</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T004</code></td>
-              <td><code>batch_validation_test.dart</code></td>
-              <td>Testes unitários garantindo homologação exclusiva para jovens presentes</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T005</code></td>
-              <td><code>atividade_service.dart</code></td>
-              <td>Serviço de gerenciamento da atividade e consultas ao catálogo local</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T006</code></td>
-              <td><code>batch_validation_orchestrator.dart</code></td>
-              <td>Algoritmo de 1 clique, idempotência e enfileiramento sem duplicidades</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T007</code></td>
-              <td><code>item_selector_widget.dart</code></td>
-              <td>Widget Flutter modal para busca e seleção múltipla de itens pedagógicos</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T008</code></td>
-              <td><code>atividade_chamada_view.dart</code></td>
-              <td>Interface principal com botões de chamada rápida e ação de lote</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T009</code></td>
-              <td><code>batch_validation_confirm_dialog.dart</code></td>
-              <td>Diálogo de confirmação com resumo estatístico e aviso offline</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-            <tr>
-              <td><code>T010</code></td>
-              <td><code>sync_pending_widget.dart</code></td>
-              <td>Monitoramento de pendências e botão de transmissão em lote para o Paxtu</td>
-              <td><span class="item-chip">✔ Concluído</span></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="filter-group">
+          <label class="filter-label" for="filter-patrulha">Patrulha:</label>
+          <select id="filter-patrulha" class="filter-select" onchange="filtrarJovensConsultivo()">
+            <option value="todas">Todas as Patrulhas</option>
+          </select>
+        </div>
 
-        <h3>Garantias de Segurança e Conformidade com o Legado</h3>
-        <ul style="color: var(--text-secondary); margin-left: 1.5rem; line-height: 1.8;">
-          <li><strong>Idempotência:</strong> A chave composta <code>{idAssociado}_{tipoItem}_{idItem}</code> impede que itens já homologados sejam relançados em duplicidade.</li>
-          <li><strong>Zero Quebra no Backend Paxtu:</strong> A transmissão em lote respeita a semântica da API legado efetuando chamadas sequenciais autenticadas com rate limiting.</li>
-          <li><strong>Privacidade e LGPD:</strong> Não há gravação de credenciais ou senhas no armazenamento local; todas as operações respeitam as seções do escotista autenticado.</li>
-        </ul>
-      </div>
-    </section>
+        <div class="filter-group">
+          <label class="filter-label" for="filter-etapa">Etapa de Progressão:</label>
+          <select id="filter-etapa" class="filter-select" onchange="filtrarJovensConsultivo()">
+            <option value="todas">Todas as Etapas</option>
+            <option value="Pista">Pista</option>
+            <option value="Trilha">Trilha</option>
+            <option value="Rumo">Rumo</option>
+            <option value="Travessia">Travessia</option>
+          </select>
+        </div>
 
-  </main>
+        <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">
+          Exibindo <span id="label-jovens-exibidos" style="color: #fff;">0</span> jovens
+        </div>
+      </section>
 
-  <!-- Modal Seletor de Itens Pedagógicos -->
-  <div class="modal-overlay" id="modal-seletor-itens">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 style="color: var(--text-primary); font-size: 1.15rem; font-weight: 700;">
-          <span>🧭</span> Selecionar Itens Trabalhados na Atividade
-        </h3>
-        <button class="btn btn-outline" style="padding: 2px 8px;" onclick="fecharModalSeletorItens()">&times;</button>
-      </div>
-
-      <!-- Abas do Modal -->
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-        <button class="btn btn-outline modal-tab-btn active" data-aba="progressao" onclick="trocarAbaModal('progressao')">
-          🧭 Itens de Progressão
-        </button>
-        <button class="btn btn-outline modal-tab-btn" data-aba="especialidades" onclick="trocarAbaModal('especialidades')">
-          🎖️ Especialidades
-        </button>
-      </div>
-
-      <!-- Filtro de Busca -->
-      <div class="form-group">
-        <input type="text" id="modal-busca-input" class="form-input" placeholder="Buscar por palavra-chave ou eixo..." oninput="renderModalItens()">
-      </div>
-
-      <!-- Lista de Itens -->
-      <div id="modal-itens-lista" style="max-height: 380px; overflow-y: auto; padding-right: 6px;">
+      <!-- Container Dinâmico de Patrulhas e Jovens Consultivos -->
+      <section id="patrols-container">
         <!-- Preenchido via app.js -->
-      </div>
+      </section>
 
-      <div class="modal-footer">
-        <button class="btn btn-outline" onclick="fecharModalSeletorItens()">Cancelar</button>
-        <button class="btn btn-primary" onclick="confirmarSelecaoModal()">Confirmar Seleção</button>
+    </main>
+
+    <!-- Modal Consultivo da Ficha Completa do Jovem -->
+    <div class="modal-overlay" id="modal-ficha-jovem">
+      <div class="modal-content" style="max-width: 820px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="ficha-avatar-lg" id="ficha-modal-avatar">⚜️</div>
+            <div>
+              <h3 id="ficha-modal-nome" style="color: #fff; font-size: 1.25rem; font-weight: 800; line-height: 1.2;">--</h3>
+              <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px;">
+                UEB: <strong id="ficha-modal-ueb" style="color: var(--brand-green-light);">--</strong> • 
+                Patrulha: <strong id="ficha-modal-patrulha" style="color: var(--scout-gold-light);">--</strong> • 
+                Cargo: <span id="ficha-modal-cargo" style="color: #fff;">--</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-outline" style="padding: 4px 10px; font-size: 1.2rem; line-height: 1;" onclick="fecharFichaJovemConsultiva()">&times;</button>
+        </div>
+
+        <div class="modal-body" style="padding: 1.25rem; max-height: 70vh; overflow-y: auto;">
+
+          <!-- Navegação interna da Ficha do Jovem -->
+          <div class="ficha-tabs">
+            <button class="ficha-tab-btn active" data-pane="pane-progresso" onclick="trocarAbaFicha('pane-progresso', this)">
+              📈 Progressão & Áreas
+            </button>
+            <button class="ficha-tab-btn" data-pane="pane-especialidades" onclick="trocarAbaFicha('pane-especialidades', this)">
+              🎖️ Especialidades (<span id="ficha-badge-esp-count">0</span>)
+            </button>
+            <button class="ficha-tab-btn" data-pane="pane-historico" onclick="trocarAbaFicha('pane-historico', this)">
+              🏕️ Histórico de Atividades & Paxtu
+            </button>
+            <button class="ficha-tab-btn" data-pane="pane-cadastral" onclick="trocarAbaFicha('pane-cadastral', this)">
+              📋 Ficha Cadastral Oficial
+            </button>
+          </div>
+
+          <!-- Aba 1: Progressão & Áreas de Desenvolvimento -->
+          <div id="pane-progresso" class="ficha-pane active">
+            <div style="background: rgba(11,20,17,0.7); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Etapa Atual no Paxtu</div>
+                <div style="font-size: 1.35rem; font-weight: 800; color: var(--scout-gold-light);" id="ficha-etapa-nome">--</div>
+              </div>
+              <div style="min-width: 200px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+                  <span>Conclusão da Etapa</span>
+                  <strong id="ficha-progresso-percent">0%</strong>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar-fill" id="ficha-progresso-bar" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="ficha-eixos-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <!-- Renderizado via app.js -->
+            </div>
+          </div>
+
+          <!-- Aba 2: Especialidades Conquistadas -->
+          <div id="pane-especialidades" class="ficha-pane">
+            <div id="ficha-especialidades-container" class="especialidades-grid">
+              <!-- Renderizado via app.js -->
+            </div>
+          </div>
+
+          <!-- Aba 3: Histórico de Atividades & Paxtu -->
+          <div id="pane-historico" class="ficha-pane">
+            <div id="ficha-historico-container">
+              <!-- Renderizado via app.js -->
+            </div>
+          </div>
+
+          <!-- Aba 4: Ficha Cadastral Oficial -->
+          <div id="pane-cadastral" class="ficha-pane">
+            <div id="ficha-cadastral-container" style="background: rgba(11,20,17,0.7); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1.25rem;">
+              <!-- Renderizado via app.js -->
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.78rem; color: var(--text-muted);">
+            🔒 Registro oficial consultivo sincronizado via Paxtu 100 • Somente Leitura
+          </span>
+          <button class="btn btn-outline" onclick="fecharFichaJovemConsultiva()">Fechar Ficha</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Modal de Confirmação de Validação em 1 Clique -->
-  <div class="modal-overlay" id="modal-confirm-batch">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 style="color: var(--scout-gold-light); font-size: 1.15rem; font-weight: 700;">
-          <span>⚡</span> Confirmar Homologação em 1 Clique
-        </h3>
-        <button class="btn btn-outline" style="padding: 2px 8px;" onclick="fecharModalConfirmacao()">&times;</button>
-      </div>
-
-      <div style="margin: 1rem 0;">
-        <p style="font-size: 0.95rem; margin-bottom: 0.75rem;">
-          Você está prestes a homologar coletivamente a atividade <strong id="confirm-atividade-titulo" style="color: #fff;"></strong>.
-        </p>
-        
-        <div style="background: rgba(11,20,17,0.8); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
-            <span>Jovens marcados como <strong>Presentes</strong>:</span>
-            <span id="confirm-total-presentes" style="color: var(--brand-green-light); font-weight: 700;">0</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
-            <span>Itens trabalhados na atividade:</span>
-            <span id="confirm-total-itens" style="color: var(--scout-gold-light); font-weight: 700;">0</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-weight: 700;">
-            <span>Total de homologações a lançar:</span>
-            <span id="confirm-total-validacoes" style="color: #fff; font-size: 1.1rem;">0</span>
-          </div>
-        </div>
-
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">
-          🔒 <strong>Garantia de Idempotência:</strong> Associados que já possuem algum dos itens concluídos não terão itens duplicados. As ações serão persistidas localmente e salvas na fila para envio seguro ao Paxtu.
-        </p>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-outline" onclick="fecharModalConfirmacao()">Cancelar</button>
-        <button class="btn btn-ninja" onclick="executarValidacaoBatchFinal()">Confirmar e Homologar Agora</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Cadastrar Novo Jovem na Seção -->
-  <div class="modal-overlay" id="modal-cadastrar-jovem">
-    <div class="modal-content" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3 style="color: var(--text-primary); font-size: 1.15rem; font-weight: 700;">
-          <span>➕</span> Cadastrar Jovem na Seção Ativa
-        </h3>
-        <button class="btn btn-outline" style="padding: 2px 8px;" onclick="fecharModalAdicionarJovem()">&times;</button>
-      </div>
-
-      <div style="margin: 1rem 0;">
-        <div class="form-group">
-          <label class="form-label" for="novo-jovem-nome">Nome Completo do Associado</label>
-          <input type="text" id="novo-jovem-nome" class="form-input" placeholder="Ex: Gabriel Santos Ferreira" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="novo-jovem-ueb">Registro UEB do Jovem</label>
-          <input type="text" id="novo-jovem-ueb" class="form-input" placeholder="Ex: 1511813-1" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="novo-jovem-patrulha">Patrulha / Matilha</label>
-          <input type="text" id="novo-jovem-patrulha" class="form-input" placeholder="Ex: Lobo, Águia, Touro...">
-        </div>
-
-        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
-          🔒 O cadastro é armazenado no escopo seguro da chefia autenticada e sincronizado com a chamada da seção.
-        </p>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-outline" onclick="fecharModalAdicionarJovem()">Cancelar</button>
-        <button class="btn btn-primary" onclick="salvarNovoJovemModal()">Salvar Jovem</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- App Footer -->
-  <footer class="app-footer">
-    <p>SuperMappa &copy; 2026 • Engenharia Reversa gerada pelo <strong>Reversa</strong> com nível de confiança 🟢 98% • Escoteiros do Brasil</p>
-  </footer>
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <p>SuperMappa &copy; 2026 • Portal Consultivo Paxtu 100 • Escoteiros do Brasil</p>
+    </footer>
 
   </div><!-- /#screen-app -->
 
   <!-- Scripts com cache buster -->
-  <script src="app.js?v=3.1"></script>
+  <script src="app.js?v=4.0"></script>
 </body>
 </html>
