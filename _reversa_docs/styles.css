@@ -664,6 +664,66 @@ pre.code-block {
   background: rgba(11, 20, 17, 0.4);
 }
 
+/* Tela de Login Dedicada do Paxtu (Gatekeeper) */
+.login-screen-wrapper {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.login-card-gate {
+  background: rgba(18, 32, 27, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: var(--radius-lg);
+  max-width: 480px;
+  width: 100%;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 25px rgba(245, 158, 11, 0.15);
+  backdrop-filter: blur(16px);
+  text-align: center;
+}
+
+.login-card-gate .brand-symbol {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem auto;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-green), var(--scout-gold));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
+}
+
+.login-card-gate h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.login-card-gate p.sub-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.75rem;
+}
+
+.login-card-gate .form-group {
+  text-align: left;
+  margin-bottom: 1.25rem;
+}
+
+.login-card-gate .btn-submit-paxtu {
+  width: 100%;
+  padding: 0.85rem;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
 /* Footer */
 footer.app-footer {
   border-top: 1px solid var(--border-color);

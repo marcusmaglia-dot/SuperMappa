@@ -159,8 +159,9 @@ class SuperMappaState {
 
   carregarDadosLocais() {
     try {
+      const sessaoAtiva = sessionStorage.getItem('supermappa_chefia_logged');
       const sessaoSalva = localStorage.getItem('supermappa_chefia_session');
-      if (sessaoSalva) {
+      if (sessaoAtiva === 'true' && sessaoSalva) {
         this.sessaoChefia = JSON.parse(sessaoSalva);
       } else {
         this.sessaoChefia = {
@@ -295,6 +296,7 @@ const appState = new SuperMappaState();
 
 // Inicialização da UI
 document.addEventListener('DOMContentLoaded', () => {
+  atualizarVisibilidadeTelas();
   setupNavigation();
   setupFormBindings();
   renderChefiaAuthArea();
@@ -303,6 +305,21 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTabelaChamada();
   renderFilaSync();
 });
+
+// Controle da Tela de Login (Gatekeeper) vs Aplicação Principal
+function atualizarVisibilidadeTelas() {
+  const screenLogin = document.getElementById('screen-login');
+  const screenApp = document.getElementById('screen-app');
+  if (!screenLogin || !screenApp) return;
+
+  if (appState.sessaoChefia.autenticado) {
+    screenLogin.style.display = 'none';
+    screenApp.style.display = 'block';
+  } else {
+    screenLogin.style.display = 'flex';
+    screenApp.style.display = 'none';
+  }
+}
 
 // Navegação de Abas
 function setupNavigation() {
@@ -444,6 +461,47 @@ function renderChefiaAuthArea() {
   }
 }
 
+function processarLoginGatekeeper() {
+  const ueb = document.getElementById('gate-ueb')?.value;
+  const pass = document.getElementById('gate-senha')?.value;
+  const ramo = document.getElementById('gate-ramo')?.value;
+
+  if (!ueb || !pass) {
+    alert("Informe o Registro UEB e a Senha do Paxtu.");
+    return;
+  }
+
+  const btn = document.getElementById('btn-gate-submit');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = "<span>⏳</span> Conectando ao Paxtu 100...";
+  }
+
+  setTimeout(() => {
+    try {
+      sessionStorage.setItem('supermappa_chefia_logged', 'true');
+      appState.autenticarChefia(ueb, pass, ramo, `Seção do Ramo ${ramo}`);
+      atualizarVisibilidadeTelas();
+      renderChefiaAuthArea();
+      renderCounters();
+      renderTabelaChamada();
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = "<span>🔑</span> Entrar no Paxtu 100";
+      }
+
+      alert(`⚜️ Acesso Autorizado!\n\nBem-vindo(a), Chefe! Sessão iniciada para o Registro UEB ${ueb}.\nSeção ativa: ${ramo}.`);
+    } catch (err) {
+      alert(err.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = "<span>🔑</span> Entrar no Paxtu 100";
+      }
+    }
+  }, 600);
+}
+
 function processarLoginChefia() {
   const ueb = document.getElementById('login-ueb')?.value;
   const pass = document.getElementById('login-senha')?.value;
@@ -457,7 +515,9 @@ function processarLoginChefia() {
     }
 
     setTimeout(() => {
+      sessionStorage.setItem('supermappa_chefia_logged', 'true');
       appState.autenticarChefia(ueb, pass, ramo, `Seção do Ramo ${ramo}`);
+      atualizarVisibilidadeTelas();
       renderChefiaAuthArea();
       renderCounters();
       renderTabelaChamada();
@@ -470,10 +530,14 @@ function processarLoginChefia() {
 
 function deslogarChefia() {
   if (confirm("Deseja realmente encerrar a sessão de chefia do Paxtu?")) {
+    sessionStorage.removeItem('supermappa_chefia_logged');
     appState.encerrarSessao();
+    atualizarVisibilidadeTelas();
     renderChefiaAuthArea();
     renderCounters();
     renderTabelaChamada();
+    const passInput = document.getElementById('gate-senha');
+    if (passInput) passInput.value = '';
   }
 }
 

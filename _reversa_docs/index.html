@@ -12,10 +12,53 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
   
-  <!-- CSS Styles -->
-  <link rel="stylesheet" href="styles.css">
+  <!-- CSS Styles com cache buster -->
+  <link rel="stylesheet" href="styles.css?v=3.1">
 </head>
 <body>
+
+  <!-- TELA DEDICADA DE LOGIN NO PAXTU 100 (GATEKEEPER) -->
+  <section id="screen-login" class="login-screen-wrapper">
+    <div class="login-card-gate">
+      <div class="brand-symbol">⚜️</div>
+      <h2>mAPPa / Paxtu 100</h2>
+      <p class="sub-text">Acesso da Chefia — Gestão de Seção e Chamada em Lote</p>
+
+      <form id="paxtu-gate-form" onsubmit="event.preventDefault(); processarLoginGatekeeper();">
+        <div class="form-group">
+          <label class="form-label" for="gate-ueb">Registro UEB do Escotista</label>
+          <input type="text" id="gate-ueb" class="form-input" placeholder="Ex: 1511813" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="gate-senha">Senha do Paxtu</label>
+          <input type="password" id="gate-senha" class="form-input" placeholder="••••••••••••" required autocomplete="current-password">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="gate-ramo">Seção / Ramo de Atuação</label>
+          <select id="gate-ramo" class="form-select">
+            <option value="Escoteiro">Tropa Escoteira (11 a 14 anos)</option>
+            <option value="Lobinho">Alcatéia de Lobinhos (6.5 a 10 anos)</option>
+            <option value="Senior">Tropa Sênior (15 a 17 anos)</option>
+            <option value="Pioneiro">Clã Pioneiro (18 a 20 anos)</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-ninja btn-submit-paxtu" id="btn-gate-submit">
+          <span>🔑</span> Entrar no Paxtu 100
+        </button>
+
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+          <span>🔒 Conexão Segura TLS 1.3</span>
+          <span style="color: var(--brand-green-light); font-weight: 600;">Escoteiros do Brasil</span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ÁREA DA APLICAÇÃO SUPERMAPPA (EXIBIDA APÓS O LOGIN) -->
+  <div id="screen-app" style="display: none;">
 
   <!-- App Header -->
   <header class="app-header">
@@ -590,7 +633,9 @@
     <p>SuperMappa &copy; 2026 • Engenharia Reversa gerada pelo <strong>Reversa</strong> com nível de confiança 🟢 98% • Escoteiros do Brasil</p>
   </footer>
 
-  <!-- Scripts -->
-  <script src="app.js"></script>
+  </div><!-- /#screen-app -->
+
+  <!-- Scripts com cache buster -->
+  <script src="app.js?v=3.1"></script>
 </body>
 </html>
