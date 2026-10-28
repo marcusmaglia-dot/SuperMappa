@@ -93,13 +93,25 @@ async function fetchPaxtuApi(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
+  let res = null;
+  let data = null;
+
   try {
-    const res = await fetch(urlCompleta, {
-      ...options,
-      headers
-    });
+    // Tentativa com credentials: 'include' para sincronizar cookies de sessão do Paxtu
+    try {
+      res = await fetch(urlCompleta, {
+        ...options,
+        credentials: 'include',
+        headers
+      });
+    } catch (corsErr) {
+      // Se CORS recusar credentials por wildcard, executa fallback sem credentials
+      res = await fetch(urlCompleta, {
+        ...options,
+        headers
+      });
+    }
     
-    let data = null;
     const contentType = res.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
       data = await res.json().catch(() => null);
@@ -108,9 +120,15 @@ async function fetchPaxtuApi(endpoint, options = {}) {
       data = { rawText: text.substring(0, 500) };
     }
 
+    if (!consultiveState.endpointsStatus) consultiveState.endpointsStatus = {};
+    consultiveState.endpointsStatus[endpoint] = { ok: res.ok, status: res.status, data };
+
     registrarLogRede(options.method || 'GET', endpoint, res.status, data);
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
+    if (!consultiveState.endpointsStatus) consultiveState.endpointsStatus = {};
+    consultiveState.endpointsStatus[endpoint] = { ok: false, status: 0, error: err.message };
+
     registrarLogRede(options.method || 'GET', endpoint, 'Erro de Rede', err.message);
     return { ok: false, status: 0, error: err.message };
   }
@@ -284,13 +302,28 @@ async function processarLoginGatekeeper() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   // Execução e sincronização sequencial em segundo plano dos dados adicionais
-  try {
-    // Passo 2: Buscar Perfil Oficial
-    const perfilRes = await fetchPaxtuApi("/api/perfil");
-    if (perfilRes.ok && perfilRes.data) {
-      const perfil = perfilRes.data;
-      consultiveState.rawPerfilPayload = perfil;
+  const idUeb = consultiveState.chefia ? consultiveState.chefia.ueb : ueb;
 
+  try {
+    // Passo 2: Buscar Perfil Oficial em Cascata
+    let perfil = null;
+    const p1 = await fetchPaxtuApi("/api/perfil");
+    if (p1.ok && p1.data && (p1.data.nome || p1.data.nomeCompleto || p1.data.registroUeb)) {
+      perfil = p1.data;
+    } else {
+      const p2 = await fetchPaxtuApi(`/api/perfil?idAssociado=${idUeb}`);
+      if (p2.ok && p2.data && (p2.data.nome || p2.data.nomeCompleto)) {
+        perfil = p2.data;
+      } else {
+        const p3 = await fetchPaxtuApi(`/api/perfil?nr_registro=${idUeb}`);
+        if (p3.ok && p3.data && (p3.data.nome || p3.data.nomeCompleto)) {
+          perfil = p3.data;
+        }
+      }
+    }
+
+    if (perfil) {
+      consultiveState.rawPerfilPayload = perfil;
       consultiveState.chefia = {
         nome: perfil.nomeCompleto || perfil.nome || consultiveState.chefia.nome,
         ueb: perfil.registroUeb || perfil.ueb || consultiveState.chefia.ueb,
@@ -310,21 +343,25 @@ async function processarLoginGatekeeper() {
   }
 
   try {
-    // Passo 3: Buscar Seções
-    const secoesRes = await fetchPaxtuApi("/api/secoes");
-    if (secoesRes.ok && secoesRes.data) {
-      consultiveState.rawSecoesPayload = secoesRes.data;
-      let secoes = [];
-      if (Array.isArray(secoesRes.data)) {
-        secoes = secoesRes.data;
-      } else if (secoesRes.data && Array.isArray(secoesRes.data.secoes)) {
-        secoes = secoesRes.data.secoes;
+    // Passo 3: Buscar Seções em Cascata
+    let secoes = [];
+    const s1 = await fetchPaxtuApi("/api/secoes");
+    if (s1.ok && Array.isArray(s1.data) && s1.data.length > 0) {
+      secoes = s1.data;
+    } else if (s1.data && Array.isArray(s1.data.secoes) && s1.data.secoes.length > 0) {
+      secoes = s1.data.secoes;
+    } else {
+      const s2 = await fetchPaxtuApi(`/api/secoes?idAssociado=${idUeb}`);
+      if (s2.ok && Array.isArray(s2.data) && s2.data.length > 0) {
+        secoes = s2.data;
       }
-      if (secoes.length > 0) {
-        consultiveState.secoes = secoes;
-        consultiveState.secaoAtivaId = secoes[0].idSecao;
-        renderizarPortalConsultivo();
-      }
+    }
+
+    if (secoes.length > 0) {
+      consultiveState.rawSecoesPayload = secoes;
+      consultiveState.secoes = secoes;
+      consultiveState.secaoAtivaId = secoes[0].idSecao;
+      renderizarPortalConsultivo();
     }
   } catch (errSecoes) {
     console.warn("Aviso ao buscar seções adicionais:", errSecoes);
@@ -539,17 +576,29 @@ function renderizarPortalConsultivo() {
   const capSecoesCount = document.getElementById('cap-secoes-count');
   if (capSecoesCount) capSecoesCount.textContent = `${consultiveState.secoes.length} identificada(s)`;
 
+  // Atualizar badge de rotas
+  const badgeRotas = document.getElementById('badge-rotas-status');
+  if (badgeRotas && consultiveState.endpointsStatus) {
+    const totalChamadas = Object.keys(consultiveState.endpointsStatus).length;
+    const okChamadas = Object.values(consultiveState.endpointsStatus).filter(s => s.ok).length;
+    badgeRotas.textContent = `${okChamadas}/${totalChamadas} rotas ativas`;
+    badgeRotas.style.background = okChamadas > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+    badgeRotas.style.color = okChamadas > 0 ? '#34d399' : '#f87171';
+  }
+
   // Atualizar visualizador de JSON bruto capturado
   const rawJsonViewer = document.getElementById('raw-json-viewer');
   if (rawJsonViewer) {
     const dump = {
-      conexao: {
+      sessao: {
         servidor: consultiveState.baseUrl,
         autenticado: consultiveState.autenticado,
-        tipoAssociado: consultiveState.tipoAssociado,
         idAssociado: consultiveState.idAssociado,
-        timestamp: consultiveState.ultimaSincronizacao
+        tipoAssociado: consultiveState.tipoAssociado,
+        tokenUtilizado: (consultiveState.token || MAPPA_APP_TOKEN).substring(0, 20) + '...',
+        ultimaAtualizacao: consultiveState.ultimaSincronizacao
       },
+      diagnosticoRotas: consultiveState.endpointsStatus || {},
       respostaLogin: consultiveState.rawLoginPayload,
       perfilOficial: consultiveState.rawPerfilPayload,
       secoesOficiais: consultiveState.rawSecoesPayload || consultiveState.secoes,
@@ -607,6 +656,49 @@ function renderizarPortalConsultivo() {
   }
 
   filtrarJovensConsultivo();
+}
+
+// Testar rotas alternativas mapeadas do mAPPa
+async function tentarEndpointsAlternativos() {
+  const badge = document.getElementById('badge-rotas-status');
+  if (badge) {
+    badge.textContent = 'Testando rotas...';
+    badge.style.color = '#fbbf24';
+  }
+
+  const ueb = consultiveState.chefia ? consultiveState.chefia.ueb : (consultiveState.idAssociado || '1511813');
+  const rotas = [
+    '/api/perfil',
+    `/api/perfil?idAssociado=${ueb}`,
+    `/api/perfil?nr_registro=${ueb}`,
+    '/api/secoes',
+    `/api/secoes?idAssociado=${ueb}`,
+    '/api/secoes-favoritos?idSecao=1',
+    '/api/assessorados',
+    '/api/itens-revisao?idSecao=1',
+    `/api/blocos/associado?idAssociado=${ueb}`,
+    `/api/especialidades-itens-associado?idAssociado=${ueb}`
+  ];
+
+  for (const rota of rotas) {
+    const res = await fetchPaxtuApi(rota);
+    if (res.ok && res.data) {
+      if ((rota.includes('perfil')) && (res.data.nome || res.data.nomeCompleto)) {
+        consultiveState.rawPerfilPayload = res.data;
+        consultiveState.chefia.nome = res.data.nomeCompleto || res.data.nome;
+      }
+      if ((rota.includes('secoes')) && Array.isArray(res.data) && res.data.length > 0) {
+        consultiveState.secoes = res.data;
+        consultiveState.rawSecoesPayload = res.data;
+      }
+    }
+  }
+
+  renderizarPortalConsultivo();
+  if (badge) {
+    badge.textContent = 'Rotas Testadas';
+    badge.style.color = '#34d399';
+  }
 }
 
 // Alternar visualização do painel de JSON bruto capturado

@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
   
   <!-- CSS Styles com cache buster -->
-  <link rel="stylesheet" href="styles.css?v=5.0">
+  <link rel="stylesheet" href="styles.css?v=6.0">
 </head>
 <body>
 
@@ -208,17 +208,21 @@
           </div>
         </div>
 
-        <!-- Visualizador expansível de payload JSON bruto capturado -->
-        <div id="box-json-bruto-capturado" style="display: none; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <!-- Visualizador expansível de payload JSON bruto capturado (Aberto por padrão para transparência) -->
+        <div id="box-json-bruto-capturado" style="display: block; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-            <div style="font-size: 0.8rem; font-weight: 700; color: var(--scout-gold-light);">
-              📄 Payloads Oficiais Retornados pela API (paxtu100.escoteiros.org.br)
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--scout-gold-light);">
+                📄 Payloads Oficiais Retornados pela API (paxtu100.escoteiros.org.br)
+              </span>
+              <span id="badge-rotas-status" style="font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; background: rgba(16,185,129,0.15); color: #34d399; font-weight: 600;">Sincronizando...</span>
             </div>
             <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-outline" style="font-size: 0.72rem; padding: 2px 8px;" onclick="tentarEndpointsAlternativos()" title="Testar rotas secundárias mapeadas da API mAPPa">🔄 Testar Rotas Alternativas</button>
               <button class="btn btn-outline" style="font-size: 0.72rem; padding: 2px 8px;" onclick="copiarJsonCapturado()">📋 Copiar JSON</button>
             </div>
           </div>
-          <pre id="raw-json-viewer" class="json-code-box" style="max-height: 250px; overflow-y: auto; background: rgba(5,10,8,0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 0.75rem; font-family: 'Fira Code', monospace; font-size: 0.75rem; color: #a7f3d0; white-space: pre-wrap; word-break: break-all;">Aguardando dados da API...</pre>
+          <pre id="raw-json-viewer" class="json-code-box" style="max-height: 250px; overflow-y: auto; background: rgba(5,10,8,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 0.75rem; font-family: 'Fira Code', monospace; font-size: 0.75rem; color: #a7f3d0; white-space: pre-wrap; word-break: break-all;">Aguardando dados da API...</pre>
         </div>
       </section>
 
@@ -427,6 +431,6 @@
   </div><!-- /#screen-app -->
 
   <!-- Scripts com cache buster -->
-  <script src="app.js?v=5.0"></script>
+  <script src="app.js?v=6.0"></script>
 </body>
 </html>
