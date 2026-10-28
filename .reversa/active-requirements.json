@@ -1,0 +1,18 @@
+{
+  "schema-version": 1,
+  "feature-dir": "_reversa_forward/001-validacao-lote-atividade",
+  "feature-id": "001",
+  "short-name": "validacao-lote-atividade",
+  "started-at": "2026-10-28T04:44:00Z",
+  "completed-at": "2026-10-28T04:56:00Z",
+  "current-stage": "concluido",
+  "stages-completed": [
+    "requirements",
+    "clarify",
+    "plan",
+    "to-do",
+    "coding",
+    "sync"
+  ],
+  "paused-features": []
+}

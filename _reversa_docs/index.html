@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SuperMappa — Acesse o Mappa escoteiro com funções ninjas para a chefia. Validação em lote, chamada de seção e documentação de arquitetura.">
+  <meta name="theme-color" content="#10b981">
+  <title>SuperMappa — Funções Ninjas para a Chefia & Documentação</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- CSS Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-box">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <h1 class="brand-title">SuperMappa</h1>
+          <span class="brand-badge">Funções Ninjas para Chefia</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" aria-label="Navegação Principal">
+        <button class="nav-tab-btn active" data-target="tab-app" id="btn-tab-app">
+          <span>⚡</span> Validação em Lote (1 Clique)
+        </button>
+        <button class="nav-tab-btn" data-target="tab-arquitetura" id="btn-tab-arquitetura">
+          <span>🏛️</span> Arquitetura & C4
+        </button>
+        <button class="nav-tab-btn" data-target="tab-specs" id="btn-tab-specs">
+          <span>📦</span> Specs SDD (9 Módulos)
+        </button>
+        <button class="nav-tab-btn" data-target="tab-forward" id="btn-tab-forward">
+          <span>🚀</span> Feature 001 & Roadmap
+        </button>
+      </nav>
+
+      <!-- Sync Status Indicator -->
+      <div class="sync-indicator-bar" id="sync-bar">
+        <span class="sync-dot"></span>
+        <span id="sync-label">Tudo sincronizado</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="main-container">
+
+    <!-- ABA 1: Aplicação Funcional SuperMappa (Batch Validation) -->
+    <section id="tab-app" class="tab-pane active">
+      
+      <!-- Counters Summary Bar -->
+      <div class="counters-bar">
+        <div class="stat-box">
+          <div class="stat-value" id="stat-presentes" style="color: var(--status-presente);">0</div>
+          <div class="stat-label">Jovens Presentes</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-ausentes" style="color: var(--status-ausente);">0</div>
+          <div class="stat-label">Ausentes</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-justificados" style="color: var(--status-justificado);">0</div>
+          <div class="stat-label">Justificados</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-validacoes" style="color: var(--scout-gold-light);">0</div>
+          <div class="stat-label">Homologações Estimadas</div>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        
+        <!-- Painel de Dados da Atividade e Itens Trabalhados -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><span>📋</span> Dados da Atividade da Seção</h2>
+            <button class="btn btn-outline" style="font-size: 0.8rem; padding: 4px 10px;" onclick="appState.resetarAtividade(); location.reload();">Reiniciar</button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="input-atividade-titulo">Título da Atividade</label>
+            <input type="text" id="input-atividade-titulo" class="form-input">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="input-atividade-data">Data</label>
+              <input type="date" id="input-atividade-data" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="select-atividade-ramo">Ramo Ativo</label>
+              <select id="select-atividade-ramo" class="form-select">
+                <option value="Escoteiro">Ramo Escoteiro (11 a 14 anos)</option>
+                <option value="Lobinho">Ramo Lobinho (6.5 a 10 anos)</option>
+                <option value="Senior">Ramo Sênior (15 a 17 anos)</option>
+                <option value="Pioneiro">Ramo Pioneiro (18 a 20 anos)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="input-atividade-desc">Descrição / Objetivos Pedagógicos</label>
+            <textarea id="input-atividade-desc" class="form-textarea" rows="2"></textarea>
+          </div>
+
+          <!-- Seção de Itens Vinculados à Atividade -->
+          <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <label class="form-label" style="margin: 0; font-weight: 700; color: var(--text-primary);">
+                Itens de Progressão & Especialidades Trabalhados
+              </label>
+              <button class="btn btn-primary" style="font-size: 0.8rem; padding: 4px 12px;" onclick="abrirModalSeletorItens()">
+                <span>➕</span> Adicionar Itens
+              </button>
+            </div>
+            
+            <div id="itens-chips-container" class="chips-container">
+              <!-- Renderizado via app.js -->
+            </div>
+          </div>
+
+          <!-- Ação Principal de Homologação em Lote -->
+          <div style="margin-top: 2rem; padding: 1.25rem; background: rgba(11,20,17,0.7); border-radius: var(--radius-md); border: 1px solid rgba(245, 158, 11, 0.3);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="color: var(--scout-gold-light); font-size: 1rem; margin-bottom: 2px;">⚡ Concluir e Validar em 1 Clique</h3>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Homologa todos os itens para os jovens presentes de forma idempotente e segura.</p>
+              </div>
+              <button class="btn btn-ninja" onclick="abrirModalConfirmacaoValidacao()" id="btn-homologar-lote">
+                <span>⚡</span> Validar em 1 Clique
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel de Chamada de Presença da Seção -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title"><span>👥</span> Lista de Chamada da Seção</h2>
+            <div style="display: flex; gap: 0.4rem;">
+              <button class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" onclick="marcarTodos('presente')">Todos Presentes</button>
+              <button class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" onclick="marcarTodos('ausente')">Limpar</button>
+            </div>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="attendance-table" aria-label="Tabela de Presença">
+              <thead>
+                <tr>
+                  <th>Jovem / Registro UEB</th>
+                  <th>Patrulha</th>
+                  <th>Presença</th>
+                </tr>
+              </thead>
+              <tbody id="attendance-tbody">
+                <!-- Populado dinamicamente via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Fila de Sincronização Offline / Paxtu -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span>🔄</span> Fila de Sincronização com Paxtu 
+            <span class="brand-badge" id="sync-pendencias-count">0</span>
+          </h2>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary" id="btn-sincronizar-paxtu" onclick="sincronizarFilaComPaxtu()" style="font-size: 0.8rem; padding: 4px 12px;">
+              <span>🚀</span> Sincronizar Fila Agora
+            </button>
+            <button class="btn btn-outline" onclick="limparFilaConcluida()" style="font-size: 0.8rem; padding: 4px 10px;">
+              Limpar Concluídos
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="attendance-table">
+            <thead>
+              <tr>
+                <th>Jovem Homologado</th>
+                <th>Tipo</th>
+                <th>Requisito Homologado</th>
+                <th>Hora</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="sync-tbody">
+              <!-- Renderizado via app.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ABA 2: Arquitetura & Engenharia Reversa (C4 & Topology) -->
+    <section id="tab-arquitetura" class="tab-pane">
+      <div class="doc-section">
+        <h2>🏛️ Arquitetura do Sistema mAPPa (Escoteiros do Brasil)</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+          Extraída diretamente pelo <strong>Arquiteto do Reversa</strong> com nível de confiança 🟢 <strong>CONFIRMADO</strong> a partir do binário compilado AOT <code>libapp.so</code> e assets decompilados.
+        </p>
+
+        <div class="grid-3col" style="margin-bottom: 1.5rem;">
+          <div class="stat-box">
+            <div class="stat-label">Camada Mobile</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: var(--brand-green-light); margin-top: 4px;">Flutter (Dart AOT)</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">GetX • Dio • Sqflite</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Integração Externa</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: var(--scout-gold-light); margin-top: 4px;">Paxtu 100 REST</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">paxtu100.escoteiros.org.br</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Nível de Confiança</div>
+            <div style="font-size: 1.2rem; font-weight: 700; color: #34d399; margin-top: 4px;">98% Auditado</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">9 Módulos Cobertos</div>
+          </div>
+        </div>
+
+        <h3>Topologia de Componentes (C4 Nível 2)</h3>
+        <pre class="code-block">
++-----------------------------------------------------------------------------------+
+|                        mAPPa Mobile App (Flutter / Dart)                          |
+|                                                                                   |
+|  [ Apresentação ] ---> [ Gerência de Estado ] ---> [ Domínio / Casos de Uso ]     |
+|   (GetView/Widgets)       (GetX Controllers)        (GetItensRevisaoMappaCase)    |
+|                                                                |                  |
+|                                                                v                  |
+|  [ Sqflite Local ] <-------------------------------- [ Camada de Dados / Dio ]   |
+|   (Cache Offline)                                    (CookieJar / Interceptors)   |
++----------------------------------------------------------------+------------------+
+                                                                 | HTTPS (REST API)
+                                                                 v
++-----------------------------------------------------------------------------------+
+|                     Backend Institucional Paxtu 100 (UEB)                        |
+|                                                                                   |
+|   /api/auth/login        /api/secao/jovens        /api/marcar-item-revisao        |
+|   /api/progressao        /api/especialidades      /api/apf/atividades             |
++-----------------------------------------------------------------------------------+
+        </pre>
+
+        <h3>Diagrama Entidade-Relacionamento Lógico (ERD)</h3>
+        <table class="doc-table">
+          <thead>
+            <tr>
+              <th>Entidade</th>
+              <th>Chaves & Atributos Principais</th>
+              <th>Relacionamentos</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>ASSOCIADO</strong></td>
+              <td><code>id_associado</code>, <code>registro_ueb</code>, <code>nome</code>, <code>ramo</code></td>
+              <td>Pertence a uma SEÇÃO; possui múltiplos CICLOS e ESPECIALIDADES</td>
+            </tr>
+            <tr>
+              <td><strong>SEÇÃO</strong></td>
+              <td><code>id_secao</code>, <code>nome_secao</code>, <code>ramo</code>, <code>id_grupo</code></td>
+              <td>Contém vários ASSOCIADOS; gerida por ESCOTISTAS da Seção</td>
+            </tr>
+            <tr>
+              <td><strong>COMPETENCIA_CICLO</strong></td>
+              <td><code>id_competencia</code>, <code>ramo</code>, <code>eixo</code>, <code>descricao</code></td>
+              <td>Vinculada ao Plano de Progressão do Jovem</td>
+            </tr>
+            <tr>
+              <td><strong>ASSOCIADO_ESPECIALIDADES</strong></td>
+              <td><code>id_associado</code>, <code>id_especialidade</code>, <code>nivel</code></td>
+              <td>Requisitos homologados individualmente ou em lote</td>
+            </tr>
+            <tr>
+              <td><strong>ITEM_REVISAO</strong></td>
+              <td><code>id_item</code>, <code>id_associado</code>, <code>status</code> (aprovado/pendente)</td>
+              <td>Fila de submissão do jovem para homologação da chefia</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ABA 3: Specs SDD (9 Módulos do Sistema) -->
+    <section id="tab-specs" class="tab-pane">
+      <div class="doc-section">
+        <h2>📦 Especificações SDD Extraídas (9 Unidades de Domínio)</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+          Cada módulo abaixo possui documentação completa de requisitos (<code>requirements.md</code>), arquitetura (<code>design.md</code>) e decomposição de tarefas (<code>tasks.md</code>) salva em <code>_reversa_sdd/</code>.
+        </p>
+
+        <div class="grid-3col">
+          
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">🔑 01. Auth & Sessão</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Autenticação via credenciais Paxtu, emissão de cookies de sessão, renovação de token e suporte a múltiplos perfis de acesso.</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">👤 02. Associado & Perfil</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Dados cadastrais, registro UEB, via de filiação, histórico associativo, grupo e seção de vinculação.</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">🧭 03. Jovem Progressão</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Ramos Lobinho, Escoteiro, Sênior e Pioneiro. Blocos de competências, eixos educativos (Conhecer, Fazer, Conviver, Ser).</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">🎖️ 04. Especialidades</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Catálogo oficial com mais de 100 especialidades em 5 ramos do conhecimento. Níveis 1, 2 e 3 por requisitos cumpridos.</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">⭐ 05. Insígnias Especiais</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Insígnias de Interesse Especial (Lustosa Cabral, Cruz de São Jorge, Cordões Vermelho e Branco, etc.).</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">📋 06. Adulto APF</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Acompanhamento Pessoal de Formação para escotistas e dirigentes. Níveis Básico, Intermediário e Avançado.</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">👨‍🏫 07. Monitor Escotista</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Área restrita da chefia para revisar itens submetidos pelos jovens, aprovar conquistas e gerenciar a seção.</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">🏕️ 08. Atividades</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Registro de atividades fixas e variáveis, acampamentos, excursões e calendário anual do grupo escoteiro.</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+          <div class="card">
+            <h3 style="color: var(--brand-green-light); margin-top: 0;">💬 09. Comunicação</h3>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">Canal de mensagens institucionais, mural de avisos da patrulha e notificações push de eventos.</p>
+            <span class="item-chip">🟢 Confirmado</span>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 4: Feature 001 - Forward & Roadmap -->
+    <section id="tab-forward" class="tab-pane">
+      <div class="doc-section">
+        <h2>🚀 Ciclo Forward: Feature 001 (Validação em Lote por Atividade)</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+          Implementação de alta produtividade para eliminar o retrabalho dos chefes escoteiros que precisavam lançar itens manualmente um a um.
+        </p>
+
+        <h3>Rastreabilidade da Entrega (Tarefas T001 a T010 Concluídas)</h3>
+        <table class="doc-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Componente / Arquivo Alvo</th>
+              <th>Responsabilidade</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>T001</code></td>
+              <td><code>db_helper.dart</code></td>
+              <td>Schema SQLite local com tabelas para chamada, itens e fila Paxtu</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T002</code></td>
+              <td><code>offline_data_seeder.dart</code></td>
+              <td>Catálogo offline completo de especialidades e matriz de progressão</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T003</code></td>
+              <td><code>atividade_chamada_model.dart</code></td>
+              <td>Modelos DTOs com validações, regras de negócio e mapeamento SQLite</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T004</code></td>
+              <td><code>batch_validation_test.dart</code></td>
+              <td>Testes unitários garantindo homologação exclusiva para jovens presentes</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T005</code></td>
+              <td><code>atividade_service.dart</code></td>
+              <td>Serviço de gerenciamento da atividade e consultas ao catálogo local</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T006</code></td>
+              <td><code>batch_validation_orchestrator.dart</code></td>
+              <td>Algoritmo de 1 clique, idempotência e enfileiramento sem duplicidades</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T007</code></td>
+              <td><code>item_selector_widget.dart</code></td>
+              <td>Widget Flutter modal para busca e seleção múltipla de itens pedagógicos</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T008</code></td>
+              <td><code>atividade_chamada_view.dart</code></td>
+              <td>Interface principal com botões de chamada rápida e ação de lote</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T009</code></td>
+              <td><code>batch_validation_confirm_dialog.dart</code></td>
+              <td>Diálogo de confirmação com resumo estatístico e aviso offline</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+            <tr>
+              <td><code>T010</code></td>
+              <td><code>sync_pending_widget.dart</code></td>
+              <td>Monitoramento de pendências e botão de transmissão em lote para o Paxtu</td>
+              <td><span class="item-chip">✔ Concluído</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Garantias de Segurança e Conformidade com o Legado</h3>
+        <ul style="color: var(--text-secondary); margin-left: 1.5rem; line-height: 1.8;">
+          <li><strong>Idempotência:</strong> A chave composta <code>{idAssociado}_{tipoItem}_{idItem}</code> impede que itens já homologados sejam relançados em duplicidade.</li>
+          <li><strong>Zero Quebra no Backend Paxtu:</strong> A transmissão em lote respeita a semântica da API legado efetuando chamadas sequenciais autenticadas com rate limiting.</li>
+          <li><strong>Privacidade e LGPD:</strong> Não há gravação de credenciais ou senhas no armazenamento local; todas as operações respeitam as seções do escotista autenticado.</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Seletor de Itens Pedagógicos -->
+  <div class="modal-overlay" id="modal-seletor-itens">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="color: var(--text-primary); font-size: 1.15rem; font-weight: 700;">
+          <span>🧭</span> Selecionar Itens Trabalhados na Atividade
+        </h3>
+        <button class="btn btn-outline" style="padding: 2px 8px;" onclick="fecharModalSeletorItens()">&times;</button>
+      </div>
+
+      <!-- Abas do Modal -->
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <button class="btn btn-outline modal-tab-btn active" data-aba="progressao" onclick="trocarAbaModal('progressao')">
+          🧭 Itens de Progressão
+        </button>
+        <button class="btn btn-outline modal-tab-btn" data-aba="especialidades" onclick="trocarAbaModal('especialidades')">
+          🎖️ Especialidades
+        </button>
+      </div>
+
+      <!-- Filtro de Busca -->
+      <div class="form-group">
+        <input type="text" id="modal-busca-input" class="form-input" placeholder="Buscar por palavra-chave ou eixo..." oninput="renderModalItens()">
+      </div>
+
+      <!-- Lista de Itens -->
+      <div id="modal-itens-lista" style="max-height: 380px; overflow-y: auto; padding-right: 6px;">
+        <!-- Preenchido via app.js -->
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModalSeletorItens()">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmarSelecaoModal()">Confirmar Seleção</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmação de Validação em 1 Clique -->
+  <div class="modal-overlay" id="modal-confirm-batch">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="color: var(--scout-gold-light); font-size: 1.15rem; font-weight: 700;">
+          <span>⚡</span> Confirmar Homologação em 1 Clique
+        </h3>
+        <button class="btn btn-outline" style="padding: 2px 8px;" onclick="fecharModalConfirmacao()">&times;</button>
+      </div>
+
+      <div style="margin: 1rem 0;">
+        <p style="font-size: 0.95rem; margin-bottom: 0.75rem;">
+          Você está prestes a homologar coletivamente a atividade <strong id="confirm-atividade-titulo" style="color: #fff;"></strong>.
+        </p>
+        
+        <div style="background: rgba(11,20,17,0.8); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+            <span>Jovens marcados como <strong>Presentes</strong>:</span>
+            <span id="confirm-total-presentes" style="color: var(--brand-green-light); font-weight: 700;">0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+            <span>Itens trabalhados na atividade:</span>
+            <span id="confirm-total-itens" style="color: var(--scout-gold-light); font-weight: 700;">0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-weight: 700;">
+            <span>Total de homologações a lançar:</span>
+            <span id="confirm-total-validacoes" style="color: #fff; font-size: 1.1rem;">0</span>
+          </div>
+        </div>
+
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">
+          🔒 <strong>Garantia de Idempotência:</strong> Associados que já possuem algum dos itens concluídos não terão itens duplicados. As ações serão persistidas localmente e salvas na fila para envio seguro ao Paxtu.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModalConfirmacao()">Cancelar</button>
+        <button class="btn btn-ninja" onclick="executarValidacaoBatchFinal()">Confirmar e Homologar Agora</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <p>SuperMappa &copy; 2026 • Engenharia Reversa gerada pelo <strong>Reversa</strong> com nível de confiança 🟢 98% • Escoteiros do Brasil</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>

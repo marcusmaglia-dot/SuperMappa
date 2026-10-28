@@ -1,0 +1,484 @@
+{
+  "generated_at": "2026-10-28T01:20:00Z",
+  "modules": [
+    {
+      "name": "auth",
+      "path": "package:maapa/mAPPa/welcome/auth",
+      "purpose": "Autenticação centralizada com o Paxtu 100, validação de credenciais, gestão de sessão e renovação de tokens",
+      "primary_files": [
+        "package:maapa/mAPPa/welcome/auth/domain/usecases/login_case.dart",
+        "package:maapa/mAPPa/welcome/auth/presentation/controllers/login_controller.dart",
+        "package:maapa/mAPPa/welcome/auth/presentation/views/login_page.dart",
+        "package:maapa/mAPPa/welcome/auth/bindings/login_binding.dart",
+        "package:maapa/mAPPa/welcome/auth/domain/params/login_params.dart"
+      ],
+      "functions": [
+        {
+          "name": "login",
+          "file": "login_case.dart",
+          "params": ["user: string", "pass: string"],
+          "returns": "Future<Either<Failure, AuthSessionModel>>",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "validateLogin",
+          "file": "login_controller.dart",
+          "params": ["registroUeb: string", "senha: string"],
+          "returns": "bool",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "LoginParams",
+          "fields": [
+            { "name": "user", "type": "string", "required": true },
+            { "name": "pass", "type": "string", "required": true }
+          ],
+          "confidence": "confirmed"
+        },
+        {
+          "name": "AuthSessionModel",
+          "fields": [
+            { "name": "token", "type": "string", "required": true },
+            { "name": "idAssociado", "type": "int", "required": true },
+            { "name": "tipoAssociado", "type": "string", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Autenticação requer número de registro UEB válido e senha cadastrada no sistema Paxtu",
+          "location": "login_controller.dart",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Redirecionamento dinâmico pós-login baseado no tipoAssociado: Jovem vai para WelcomeHomeView e Adulto/Escotista vai para MonitorHomeView ou AdultHomeView",
+          "location": "login_controller.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["associado"],
+      "algorithms": ["Autenticação HTTP REST via Dio com persistência de cookie e bearer token"],
+      "complexity": "medium"
+    },
+    {
+      "name": "associado",
+      "path": "package:maapa/newmAPPa/presentation/views/new_profile_view.dart",
+      "purpose": "Consulta e manutenção de perfil do associado, dados institucionais da UEL e foto de perfil",
+      "primary_files": [
+        "package:maapa/newmAPPa/presentation/views/new_profile_view.dart",
+        "package:maapa/newmAPPa/presentation/views/new_profile_start_view.dart",
+        "package:maapa/newmAPPa/presentation/views/profile_acessorado_view.dart"
+      ],
+      "functions": [
+        {
+          "name": "getPerfil",
+          "file": "profile_controller.dart",
+          "params": ["idAssociado: int"],
+          "returns": "Future<AssociateInfoModel>",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "updatePerfilFoto",
+          "file": "profile_controller.dart",
+          "params": ["imagePath: string"],
+          "returns": "Future<bool>",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "AssociateInfoModel",
+          "fields": [
+            { "name": "idAssociado", "type": "int", "required": true },
+            { "name": "nomeCompleto", "type": "string", "required": true },
+            { "name": "registroUeb", "type": "string", "required": true },
+            { "name": "ramoAtual", "type": "string", "required": true },
+            { "name": "grupoEscoteiro", "type": "string", "required": true },
+            { "name": "secao", "type": "string", "required": true },
+            { "name": "fotoUrl", "type": "string", "required": false }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Dados cadastrais mestres são somente-leitura pelo aplicativo (sincronizados com o Paxtu)",
+          "location": "new_profile_view.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["auth"],
+      "algorithms": [],
+      "complexity": "low"
+    },
+    {
+      "name": "jovem-progressao",
+      "path": "package:maapa/newmAPPa/presentation/views/minha_progressao_view.dart",
+      "purpose": "Acompanhamento da progressão pessoal dos 4 ramos (Lobinho, Escoteiro, Sênior, Pioneiro), eixos de desenvolvimento, competências e ciclos",
+      "primary_files": [
+        "package:maapa/newmAPPa/presentation/views/minha_progressao_view.dart",
+        "package:maapa/newmAPPa/presentation/views/minha_progressao_itens_view.dart",
+        "package:maapa/newmAPPa/presentation/views/progressao_eixo_view.dart",
+        "package:maapa/newmAPPa/presentation/views/progressao_eixo_filhotes_view.dart",
+        "package:maapa/newmAPPa/usecases/get_blocos_case.dart",
+        "package:maapa/newmAPPa/usecases/get_blocos_associado_case.dart",
+        "package:maapa/newmAPPa/usecases/get_ciclos_case.dart",
+        "package:maapa/newmAPPa/usecases/post_criar_ciclo_case.dart",
+        "package:maapa/newmAPPa/usecases/get_competencias_case.dart"
+      ],
+      "functions": [
+        {
+          "name": "getBlocosAssociado",
+          "file": "get_blocos_associado_case.dart",
+          "params": ["idAssociado: int"],
+          "returns": "Future<List<BlocoProgressaoModel>>",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "salvarItemCompetencia",
+          "file": "post_salvar_item_case.dart",
+          "params": ["idItem: int", "conquistado: bool"],
+          "returns": "Future<bool>",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "BlocoProgressaoModel",
+          "fields": [
+            { "name": "idBloco", "type": "int", "required": true },
+            { "name": "nomeBloco", "type": "string", "required": true },
+            { "name": "ordem", "type": "int", "required": true },
+            { "name": "concluido", "type": "bool", "required": true }
+          ],
+          "confidence": "confirmed"
+        },
+        {
+          "name": "CompetenciaModel",
+          "fields": [
+            { "name": "idCompetencia", "type": "int", "required": true },
+            { "name": "eixo", "type": "string", "required": true },
+            { "name": "descricao", "type": "string", "required": true },
+            { "name": "itens", "type": "List<ItemCompetenciaModel>", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Progressão escoteira é estruturada em 4 eixos educativos: Conhecer, Fazer, Conviver e Ser",
+          "location": "progressao_eixo_view.dart",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Itens marcados pelo jovem entram em status pendente de avaliação/revisão pelo escotista responsável",
+          "location": "revisao_view.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["associado", "atividades"],
+      "algorithms": ["Cálculo de percentual de conclusão por bloco de progressão e eixo educativo"],
+      "complexity": "high"
+    },
+    {
+      "name": "especialidades",
+      "path": "package:maapa/newmAPPa/presentation/views/especialidades_view.dart",
+      "purpose": "Catálogo, requisitos, autoavaliação e conquista de Especialidades nos 5 ramos de conhecimento",
+      "primary_files": [
+        "package:maapa/newmAPPa/presentation/views/especialidades_view.dart",
+        "package:maapa/newmAPPa/presentation/views/especialidades_home_view.dart",
+        "package:maapa/newmAPPa/presentation/views/especialidades_itens_view.dart",
+        "package:maapa/newmAPPa/usecases/get_especialidades_marcadas_case.dart",
+        "package:maapa/newmAPPa/usecases/get_post_especialidades_eixo_case.dart",
+        "package:maapa/newmAPPa/usecases/get_post_especialidades_eixo_itens_case.dart",
+        "package:maapa/newmAPPa/usecases/post_acao_especialidade_case.dart"
+      ],
+      "functions": [
+        {
+          "name": "getEspecialidadesEixo",
+          "file": "get_post_especialidades_eixo_case.dart",
+          "params": ["idEixo: int"],
+          "returns": "Future<List<EspecialidadeModel>>",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "salvarEspecialidadeItem",
+          "file": "post_acao_especialidade_case.dart",
+          "params": ["idEspecialidade: int", "idItem: int"],
+          "returns": "Future<bool>",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "EspecialidadeModel",
+          "fields": [
+            { "name": "idEspecialidade", "type": "int", "required": true },
+            { "name": "nome", "type": "string", "required": true },
+            { "name": "ramoConhecimento", "type": "string", "required": true },
+            { "name": "nivelConquistado", "type": "int", "required": false },
+            { "name": "itens", "type": "List<ItemEspecialidadeModel>", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "5 áreas de especialidade: Ciência e Tecnologia, Cultura, Desportos, Habilidades Escoteiras e Serviços",
+          "location": "especialidades_home_view.dart",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Conquista dividida em Nível 1 (1/3 dos itens), Nível 2 (2/3 dos itens) e Nível 3 (todos os itens)",
+          "location": "especialidades_itens_view.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["associado"],
+      "algorithms": ["Cálculo de nível de especialidade baseado no percentual de itens cumpridos"],
+      "complexity": "medium"
+    },
+    {
+      "name": "insignias",
+      "path": "package:maapa/newmAPPa/presentation/views/insignias_home_view.dart",
+      "purpose": "Acompanhamento e submissão de requisitos para Insígnias de Interesse Especial e Distintivos Especiais",
+      "primary_files": [
+        "package:maapa/newmAPPa/presentation/views/insignias_home_view.dart",
+        "package:maapa/newmAPPa/presentation/views/insignias_itens_view.dart",
+        "package:maapa/newmAPPa/usecases/get_insignias_case.dart",
+        "package:maapa/newmAPPa/usecases/get_insignias_itens_case.dart",
+        "package:maapa/newmAPPa/usecases/get_insignias_marcadas_case.dart"
+      ],
+      "functions": [
+        {
+          "name": "getInsignias",
+          "file": "get_insignias_case.dart",
+          "params": ["idAssociado: int"],
+          "returns": "Future<List<InsigniaModel>>",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "InsigniaModel",
+          "fields": [
+            { "name": "idInsignia", "type": "int", "required": true },
+            { "name": "nome", "type": "string", "required": true },
+            { "name": "descricao", "type": "string", "required": true },
+            { "name": "ramo", "type": "string", "required": true },
+            { "name": "iconeUrl", "type": "string", "required": true },
+            { "name": "concluida", "type": "bool", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Insígnias disponíveis conforme o ramo (ex.: Aprender para Lobinho, Escoteiro e Pioneiro; Cone Sul, BP, Campeões da Natureza, Lis de Ouro, Escoteiro da Pátria)",
+          "location": "insignias_home_view.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["associado", "especialidades"],
+      "algorithms": [],
+      "complexity": "medium"
+    },
+    {
+      "name": "adulto-apf",
+      "path": "package:maapa/newmAPPa/presentation/views/plano_pessoal_formacao_view.dart",
+      "purpose": "Plano Pessoal de Formação (APF) de adultos voluntários (Escotistas e Dirigentes), competências e autoavaliação",
+      "primary_files": [
+        "package:maapa/newmAPPa/presentation/views/plano_pessoal_formacao_view.dart",
+        "package:maapa/newmAPPa/presentation/views/apf_competencias_view.dart",
+        "package:maapa/newmAPPa/presentation/views/apf_ciclo_competencia_view.dart",
+        "package:maapa/newmAPPa/presentation/views/apf_autoavaliacao_view.dart",
+        "package:maapa/newmAPPa/usecases/get_itens_ppf_case.dart",
+        "package:maapa/newmAPPa/usecases/post_ppf_case.dart",
+        "package:maapa/newmAPPa/usecases/get_progressao_adulto_case.dart"
+      ],
+      "functions": [
+        {
+          "name": "getItensPPF",
+          "file": "get_itens_ppf_case.dart",
+          "params": ["idAdulto: int"],
+          "returns": "Future<PlanoPessoalFormacaoModel>",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "salvarPPF",
+          "file": "post_ppf_case.dart",
+          "params": ["dadosPPF: PlanoPessoalFormacaoModel"],
+          "returns": "Future<bool>",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "PlanoPessoalFormacaoModel",
+          "fields": [
+            { "name": "idPlano", "type": "int", "required": true },
+            { "name": "idAdulto", "type": "int", "required": true },
+            { "name": "linhaFormacao", "type": "string", "required": true },
+            { "name": "ramoAtuacao", "type": "string", "required": true },
+            { "name": "competencias", "type": "List<CompetenciaAdultoModel>", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Formação do adulto estruturada em Linha de Formação (Escotista ou Dirigente) e Níveis (Preliminar, Básico, Avançado)",
+          "location": "plano_pessoal_formacao_view.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["associado", "auth"],
+      "algorithms": [],
+      "complexity": "high"
+    },
+    {
+      "name": "monitor-escotista",
+      "path": "package:maapa/newmAPPa/presentation/views/monitor_home_view.dart",
+      "purpose": "Painel de gestão da seção pelo escotista, lista de jovens, acompanhamento individual e revisão de itens submetidos",
+      "primary_files": [
+        "package:maapa/newmAPPa/presentation/views/monitor_home_view.dart",
+        "package:maapa/newmAPPa/presentation/views/monitor_jovens_view.dart",
+        "package:maapa/newmAPPa/presentation/views/revisao_view.dart",
+        "package:maapa/newmAPPa/presentation/views/new_revisao_view.dart",
+        "package:maapa/newmAPPa/presentation/views/minhas_revisoes_view.dart",
+        "package:maapa/newmAPPa/presentation/widgets/revisao_item_widget_mappa1.dart"
+      ],
+      "functions": [
+        {
+          "name": "getItensRevisao",
+          "file": "get_itens_revisao_case.dart",
+          "params": ["idSecao: int"],
+          "returns": "Future<List<ItensRevisaoModel>>",
+          "confidence": "confirmed"
+        },
+        {
+          "name": "postMarcarRevisaoMappa1",
+          "file": "post_marcar_revisao_mappa1_case.dart",
+          "params": ["idItem: int", "status: string", "comentario: string"],
+          "returns": "Future<bool>",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "ItensRevisaoModel",
+          "fields": [
+            { "name": "idItemRevisao", "type": "int", "required": true },
+            { "name": "idAssociado", "type": "int", "required": true },
+            { "name": "nomeJovem", "type": "string", "required": true },
+            { "name": "itemDescricao", "type": "string", "required": true },
+            { "name": "tipo", "type": "TipoItemRevisao", "required": true },
+            { "name": "dataSubmissao", "type": "string", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Escotista pode aprovar, devolver com feedback ou marcar como pendente de demonstração presencial",
+          "location": "revisao_view.dart",
+          "confidence": "confirmed"
+        },
+        {
+          "description": "Apenas escotistas com cargo ativo na seção correspondente podem aprovar progressão e especialidades",
+          "location": "monitor_home_view.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["jovem-progressao", "especialidades", "insignias", "comunicacao"],
+      "algorithms": ["Filtragem dinâmica por jovem, status de revisão e data"],
+      "complexity": "high"
+    },
+    {
+      "name": "atividades",
+      "path": "package:maapa/newmAPPa/presentation/views/atividades_fixas_view.dart",
+      "purpose": "Gerenciamento de atividades fixas e variáveis dos ciclos de desenvolvimento",
+      "primary_files": [
+        "package:maapa/newmAPPa/presentation/views/atividades_fixas_view.dart",
+        "package:maapa/newmAPPa/presentation/views/atividades_variaveis_view.dart",
+        "package:maapa/newmAPPa/usecases/post_acao_case.dart",
+        "package:maapa/newmAPPa/usecases/post_acao_variavel_case.dart"
+      ],
+      "functions": [
+        {
+          "name": "postAcaoVariavel",
+          "file": "post_acao_variavel_case.dart",
+          "params": ["idCiclo: int", "titulo: string", "descricao: string"],
+          "returns": "Future<bool>",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "AtividadeModel",
+          "fields": [
+            { "name": "idAtividade", "type": "int", "required": true },
+            { "name": "titulo", "type": "string", "required": true },
+            { "name": "tipo", "type": "string", "required": true },
+            { "name": "realizada", "type": "bool", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Atividades variáveis são definidas pelo jovem junto com sua patrulha/equipe para o ciclo de atividades",
+          "location": "atividades_variaveis_view.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["jovem-progressao"],
+      "algorithms": [],
+      "complexity": "medium"
+    },
+    {
+      "name": "comunicacao",
+      "path": "package:maapa/newmAPPa/presentation/views/notificacao_view.dart",
+      "purpose": "Mensageria interna entre escotista e jovem, feedbacks sobre conquistas e notificações de eventos",
+      "primary_files": [
+        "package:maapa/newmAPPa/presentation/views/notificacao_view.dart",
+        "package:maapa/newmAPPa/usecases/get_notificacoes_case.dart",
+        "package:maapa/newmAPPa/usecases/post_item_chamar_conversar_case.dart"
+      ],
+      "functions": [
+        {
+          "name": "postConversar",
+          "file": "post_item_chamar_conversar_case.dart",
+          "params": ["idAssociado: int", "mensagem: string"],
+          "returns": "Future<bool>",
+          "confidence": "confirmed"
+        }
+      ],
+      "entities": [
+        {
+          "name": "MensagemModel",
+          "fields": [
+            { "name": "idMensagem", "type": "int", "required": true },
+            { "name": "remetente", "type": "string", "required": true },
+            { "name": "texto", "type": "string", "required": true },
+            { "name": "dataEnvio", "type": "string", "required": true }
+          ],
+          "confidence": "confirmed"
+        }
+      ],
+      "business_rules": [
+        {
+          "description": "Comunicação sempre vinculada ao contexto de acompanhamento pedagógico escoteiro",
+          "location": "notificacao_view.dart",
+          "confidence": "confirmed"
+        }
+      ],
+      "dependencies": ["auth", "associado"],
+      "algorithms": [],
+      "complexity": "low"
+    }
+  ]
+}

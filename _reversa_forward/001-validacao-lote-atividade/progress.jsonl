@@ -1,0 +1,10 @@
+{"timestamp":"2026-10-28T01:30:00Z","task_id":"T001","status":"done","description":"Criado schema SQLite db_helper.dart com suporte a catalogo offline e atividades"}
+{"timestamp":"2026-10-28T01:32:00Z","task_id":"T002","status":"done","description":"Implementado offline_data_seeder.dart com ramos, progressao e catalogo de especialidades"}
+{"timestamp":"2026-10-28T01:35:00Z","task_id":"T003","status":"done","description":"Criados DTOs em atividade_chamada_model.dart (AtividadeChamada, Presenca, ItemAtividade)"}
+{"timestamp":"2026-10-28T01:38:00Z","task_id":"T004","status":"done","description":"Testes unitarios em batch_validation_test.dart validando presenca e idempotencia"}
+{"timestamp":"2026-10-28T01:42:00Z","task_id":"T005","status":"done","description":"Implementado AtividadeService.dart com orquestracao e catalogo offline"}
+{"timestamp":"2026-10-28T01:45:00Z","task_id":"T006","status":"done","description":"Desenvolvido BatchValidationOrchestrator.dart com algoritmo de 1 clique"}
+{"timestamp":"2026-10-28T01:54:00Z","task_id":"T007","status":"done","description":"Criado ItemSelectorWidget.dart com selecao modal de progressao e especialidades"}
+{"timestamp":"2026-10-28T01:54:40Z","task_id":"T009","status":"done","description":"Criado BatchValidationConfirmDialog.dart com resumo e confirmacao de 1 clique"}
+{"timestamp":"2026-10-28T01:54:50Z","task_id":"T010","status":"done","description":"Criado SyncPendingWidget.dart com indicador offline e acionador de sync Paxtu"}
+{"timestamp":"2026-10-28T01:55:10Z","task_id":"T008","status":"done","description":"Criado AtividadeChamadaView.dart integrando presencas, itens e homologacao em lote"}

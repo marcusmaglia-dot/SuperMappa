@@ -1,0 +1,67 @@
+{
+  "generated_at": "2026-10-28T01:05:00Z",
+  "project_root": "/home/marcus/Dev/Mappa",
+  "languages": [
+    { "name": "Dart", "extensions": [".dart"], "file_count": 180 },
+    { "name": "Kotlin/Java", "extensions": [".kt", ".java", ".dex"], "file_count": 45 },
+    { "name": "JSON/Assets", "extensions": [".json", ".png", ".svg", ".otf"], "file_count": 290 }
+  ],
+  "primary_language": "Dart",
+  "frameworks": [
+    { "name": "Flutter", "version": "3.x", "source": "libflutter.so" },
+    { "name": "GetX", "version": "latest", "source": "NOTICES.Z" },
+    { "name": "Dio", "version": "latest", "source": "NOTICES.Z" },
+    { "name": "Sqflite", "version": "latest", "source": "NOTICES.Z" },
+    { "name": "Android SDK", "version": "Min 24 / Target 36", "source": "manifest.json" }
+  ],
+  "package_manager": "pub",
+  "entry_points": [
+    { "path": "br.org.escoteiros.mappa.MainActivity", "type": "android_activity" },
+    { "path": "main.dart", "type": "flutter_entry" },
+    { "path": "LoginPage / WelcomeHomeView", "type": "initial_view" }
+  ],
+  "config_files": [
+    "assets/flutter_assets/assets/env.json",
+    "manifest.json",
+    "AndroidManifest.xml",
+    "AssetManifest.json",
+    "FontManifest.json"
+  ],
+  "ci_cd": [],
+  "database_hints": [
+    { "path": "sqflite/sqlite", "type": "local_mobile_cache" },
+    { "path": "paxtu_rest_api", "type": "remote_backend_paxtu" }
+  ],
+  "test_framework": "test_api (Flutter test)",
+  "test_file_count": 0,
+  "modules": [
+    "auth",
+    "associado",
+    "jovem-progressao",
+    "especialidades",
+    "insignias",
+    "adulto-apf",
+    "monitor-escotista",
+    "atividades",
+    "comunicacao"
+  ],
+  "total_files": 486,
+  "organization_suggestion": {
+    "granularity": "module",
+    "rationale": "O aplicativo mAPPa divide claramente suas responsabilidades entre os domínios de autenticação Paxtu, progressão dos ramos escoteiros, formação de adultos (APF), especialidades e painel do escotista/monitor.",
+    "signals": [
+      {
+        "type": "domain_controllers_and_views",
+        "evidence": [
+          "auth (LoginPage, env.json, token management)",
+          "jovem-progressao (YoungHomePage, ProgressaoEixoView, CompetenciasView)",
+          "adulto-apf (AdultHomeView, ApfPlanoPessoalFormacaoView, ApfCicloCompetenciaView)",
+          "especialidades (EspecialidadesHomeView, SpecialityItemPage)",
+          "insignias (InsigniasHomeView, InsigniasItensView)",
+          "monitor-escotista (MonitorHomeView, AssessoradoHomeView, RevisaoView)"
+        ]
+      }
+    ],
+    "features": []
+  }
+}
