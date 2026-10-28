@@ -586,6 +586,84 @@ pre.code-block {
   margin: 0.8rem 0;
 }
 
+/* Área de Login e Sessão da Chefia no Paxtu */
+.login-banner {
+  background: linear-gradient(135deg, rgba(22, 38, 33, 0.95), rgba(11, 20, 17, 0.95));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.login-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+}
+
+.login-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+@media (max-width: 992px) {
+  .login-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chefia-profile-box {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.chefia-user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.chefia-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-green), var(--scout-gold));
+  color: #064e3b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-glow);
+}
+
+.empty-state-box {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  color: var(--text-muted);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  background: rgba(11, 20, 17, 0.4);
+}
+
 /* Footer */
 footer.app-footer {
   border-top: 1px solid var(--border-color);

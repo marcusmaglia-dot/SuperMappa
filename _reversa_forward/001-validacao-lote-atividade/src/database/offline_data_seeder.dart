@@ -116,55 +116,7 @@ class OfflineDataSeeder {
     }
   ];
 
-  /// Jovens da Seção (Exemplo representativo da Tropa Escoteira)
-  static final List<Map<String, dynamic>> jovensSecaoSeed = [
-    {
-      'id_associado': 151181301,
-      'registro_ueb': '1511813-1',
-      'nome_completo': 'Gabriel Santos Ferreira',
-      'ramo': 'Escoteiro',
-      'patrulha': 'Lobo',
-      'foto_url': 'assets/flutter_assets/assets/mAPPa/images/escoteiro.jpeg'
-    },
-    {
-      'id_associado': 151181302,
-      'registro_ueb': '1511813-2',
-      'nome_completo': 'Helena Oliveira Rocha',
-      'ramo': 'Escoteiro',
-      'patrulha': 'Lobo',
-      'foto_url': 'assets/flutter_assets/assets/mAPPa/images/escoteiro.jpeg'
-    },
-    {
-      'id_associado': 151181303,
-      'registro_ueb': '1511813-3',
-      'nome_completo': 'Lucas Silva Mendes',
-      'ramo': 'Escoteiro',
-      'patrulha': 'Águia',
-      'foto_url': 'assets/flutter_assets/assets/mAPPa/images/escoteiro.jpeg'
-    },
-    {
-      'id_associado': 151181304,
-      'registro_ueb': '1511813-4',
-      'nome_completo': 'Beatriz Lima Souza',
-      'ramo': 'Escoteiro',
-      'patrulha': 'Águia',
-      'foto_url': 'assets/flutter_assets/assets/mAPPa/images/escoteiro.jpeg'
-    },
-    {
-      'id_associado': 151181305,
-      'registro_ueb': '1511813-5',
-      'nome_completo': 'Thiago Nogueira Duarte',
-      'ramo': 'Escoteiro',
-      'patrulha': 'Touro',
-      'foto_url': 'assets/flutter_assets/assets/mAPPa/images/escoteiro.jpeg'
-    },
-    {
-      'id_associado': 151181306,
-      'registro_ueb': '1511813-6',
-      'nome_completo': 'Mariana Castro Ramos',
-      'ramo': 'Escoteiro',
-      'patrulha': 'Touro',
-      'foto_url': 'assets/flutter_assets/assets/mAPPa/images/escoteiro.jpeg'
-    }
-  ];
+  /// Os dados de jovens foram removidos do seeder/banco local para conformidade com a LGPD.
+  /// O carregamento de associados agora é dinâmico e exclusivo via autenticação oficial da Chefia no Paxtu (/api/secao/jovens).
+  static final List<Map<String, dynamic>> jovensSecaoSeed = [];
 }

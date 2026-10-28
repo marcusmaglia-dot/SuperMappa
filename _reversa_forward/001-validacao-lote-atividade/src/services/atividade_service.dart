@@ -24,9 +24,17 @@ class AtividadeService {
         .toList();
   }
 
-  /// Carrega os jovens da seção ativa
+  final List<Map<String, dynamic>> _jovensSecaoAutenticada = [];
+
+  /// Define a lista de associados jovens obtida via autenticação oficial da Chefia no Paxtu
+  void definirJovensSecao(List<Map<String, dynamic>> jovens) {
+    _jovensSecaoAutenticada.clear();
+    _jovensSecaoAutenticada.addAll(jovens);
+  }
+
+  /// Retorna os jovens da seção ativa autenticada
   List<Map<String, dynamic>> obterJovensDaSecao(String ramo) {
-    return OfflineDataSeeder.jovensSecaoSeed
+    return _jovensSecaoAutenticada
         .where((j) => (j['ramo'] as String).toLowerCase() == ramo.toLowerCase())
         .toList();
   }

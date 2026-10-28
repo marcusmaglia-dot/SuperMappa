@@ -58,6 +58,11 @@
     <!-- ABA 1: Aplicação Funcional SuperMappa (Batch Validation) -->
     <section id="tab-app" class="tab-pane active">
       
+      <!-- Área de Autenticação da Chefia no Paxtu 100 -->
+      <div id="chefia-auth-container">
+        <!-- Renderizado dinamicamente via app.js -->
+      </div>
+
       <!-- Counters Summary Bar -->
       <div class="counters-bar">
         <div class="stat-box">
@@ -148,18 +153,24 @@
           <div class="card-header">
             <h2 class="card-title"><span>👥</span> Lista de Chamada da Seção</h2>
             <div style="display: flex; gap: 0.4rem;">
+              <button class="btn btn-primary" style="font-size: 0.75rem; padding: 3px 8px;" onclick="abrirModalAdicionarJovem()">➕ Novo Jovem</button>
               <button class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" onclick="marcarTodos('presente')">Todos Presentes</button>
               <button class="btn btn-outline" style="font-size: 0.75rem; padding: 3px 8px;" onclick="marcarTodos('ausente')">Limpar</button>
             </div>
           </div>
 
+          <div id="attendance-empty-box" class="empty-state-box" style="display: none;">
+            <!-- Preenchido via app.js -->
+          </div>
+
           <div style="overflow-x: auto;">
-            <table class="attendance-table" aria-label="Tabela de Presença">
+            <table class="attendance-table" id="attendance-table-element" aria-label="Tabela de Presença">
               <thead>
                 <tr>
                   <th>Jovem / Registro UEB</th>
                   <th>Patrulha</th>
                   <th>Presença</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody id="attendance-tbody">
@@ -532,6 +543,44 @@
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="fecharModalConfirmacao()">Cancelar</button>
         <button class="btn btn-ninja" onclick="executarValidacaoBatchFinal()">Confirmar e Homologar Agora</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cadastrar Novo Jovem na Seção -->
+  <div class="modal-overlay" id="modal-cadastrar-jovem">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 style="color: var(--text-primary); font-size: 1.15rem; font-weight: 700;">
+          <span>➕</span> Cadastrar Jovem na Seção Ativa
+        </h3>
+        <button class="btn btn-outline" style="padding: 2px 8px;" onclick="fecharModalAdicionarJovem()">&times;</button>
+      </div>
+
+      <div style="margin: 1rem 0;">
+        <div class="form-group">
+          <label class="form-label" for="novo-jovem-nome">Nome Completo do Associado</label>
+          <input type="text" id="novo-jovem-nome" class="form-input" placeholder="Ex: Gabriel Santos Ferreira" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="novo-jovem-ueb">Registro UEB do Jovem</label>
+          <input type="text" id="novo-jovem-ueb" class="form-input" placeholder="Ex: 1511813-1" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="novo-jovem-patrulha">Patrulha / Matilha</label>
+          <input type="text" id="novo-jovem-patrulha" class="form-input" placeholder="Ex: Lobo, Águia, Touro...">
+        </div>
+
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
+          🔒 O cadastro é armazenado no escopo seguro da chefia autenticada e sincronizado com a chamada da seção.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModalAdicionarJovem()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarNovoJovemModal()">Salvar Jovem</button>
       </div>
     </div>
   </div>
