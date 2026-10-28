@@ -72,21 +72,23 @@ function registrarLogRede(metodo, endpoint, status, resposta) {
   }
 }
 
-// Cliente HTTP do mAPPa / Paxtu
+// Constante do Token de Aplicação extraído diretamente do assets/env.json do mAPPa
+const MAPPA_APP_TOKEN = "00SSIsFJO-jBRmgb2O4MIGlLLLwqPuFIfK_q14iYzj9ZmyyflxlMWMiPWqnjyLDNMrt--Y0JvnwMiD52e66dLg";
+
+// Cliente HTTP do mAPPa Oficial
 async function fetchPaxtuApi(endpoint, options = {}) {
   const baseUrl = consultiveState.baseUrl || "https://paxtu100.escoteiros.org.br";
   const urlCompleta = `${baseUrl}${endpoint}`;
   
+  // Headers exatamente replicados do cliente mobile Flutter Dio
   const headers = {
     "Accept": "application/json",
     "Content-Type": "application/json",
-    "X-App-Token": "00SSIsFJO-jBRmgb2O4MIGlLLLwqPuFIfK_q14iYzj9ZmyyflxlMWMiPWqnjyLDNMrt--Y0JvnwMiD52e66dLg",
+    "User-Agent": "mAPPa/1.0.5 (Android; Dart 3.0)",
+    // Se logado, usa o token de sessão do usuário; senão, usa o token de aplicação do mAPPa
+    "Authorization": `Bearer ${consultiveState.token || MAPPA_APP_TOKEN}`,
     ...(options.headers || {})
   };
-
-  if (consultiveState.token) {
-    headers["Authorization"] = `Bearer ${consultiveState.token}`;
-  }
 
   try {
     const res = await fetch(urlCompleta, {
@@ -134,13 +136,13 @@ async function processarLoginGatekeeper() {
   }
 
   if (!directToken && (!ueb || !senha)) {
-    alert("Por favor, preencha o seu Registro UEB e Senha, ou informe diretamente o Token de Sessão do Paxtu / mAPPa.");
+    alert("Por favor, preencha o seu Registro UEB e Senha, ou informe diretamente o Token de Sessão do mAPPa.");
     return;
   }
 
   // Prepara interface de extração
   btnSubmit.disabled = true;
-  btnSubmit.innerHTML = '<span>⏳</span> Conectando ao servidor do mAPPa e baixando dados...';
+  btnSubmit.innerHTML = '<span>⏳</span> Conectando à API mobile do mAPPa...';
   progressBox.style.display = 'block';
   stepLog.innerHTML = '';
 
@@ -148,11 +150,15 @@ async function processarLoginGatekeeper() {
 
   // Se o usuário forneceu credenciais e não tem token direto:
   if (!tokenAtivo) {
-    atualizarPassoExtracao(`1/4: Autenticando na API do mAPPa (${consultiveState.baseUrl}/api/login)...`);
+    atualizarPassoExtracao(`1/4: Autenticando na API mobile mAPPa (${consultiveState.baseUrl}/api/login)...`);
 
+    // Payload idêntico ao do cliente mobile Flutter mAPPa
     const authRes = await fetchPaxtuApi("/api/login", {
       method: "POST",
-      body: JSON.stringify({ user: ueb, pass: senha })
+      body: JSON.stringify({
+        username: ueb,
+        password: senha
+      })
     });
 
     if (authRes.ok && authRes.data && (authRes.data.token || authRes.data.access_token)) {
@@ -165,21 +171,18 @@ async function processarLoginGatekeeper() {
       
       let detalhe = "Falha de autenticação no servidor mAPPa.";
       if (authRes.status === 401) {
-        detalhe = `O servidor respondeu HTTP 401: ${authRes.data && authRes.data.error ? authRes.data.error : 'Token ou credenciais inválidas'}.`;
+        detalhe = "Registro UEB ou senha incorretos.";
+      } else if (authRes.status === 422) {
+        detalhe = "Campos obrigatórios não preenchidos.";
       } else if (authRes.status === 0) {
         detalhe = `Erro de conexão direta (${authRes.error || 'Falha de rede'}).`;
+      } else if (authRes.data && authRes.data.error) {
+        detalhe = `Resposta da UEB: ${authRes.data.error}`;
       } else if (authRes.data && authRes.data.message) {
         detalhe = `Resposta da UEB: ${authRes.data.message}`;
       }
 
-      const usarToken = confirm(
-        `${detalhe}\n\nO servidor oficial da UEB exige autenticação ou sessão ativa.\n\nDeseja inserir um Token de Sessão (Bearer Token) ativo ou verificar as opções avançadas?`
-      );
-
-      if (usarToken) {
-        alternarOpcoesAvancadasConexao();
-        document.getElementById('gate-direct-token').focus();
-      }
+      alert(detalhe);
       return;
     }
   }
