@@ -31,12 +31,31 @@
       <form id="paxtu-gate-form" onsubmit="event.preventDefault(); processarLoginGatekeeper();">
         <div class="form-group">
           <label class="form-label" for="gate-ueb">Registro UEB do Escotista</label>
-          <input type="text" id="gate-ueb" class="form-input" placeholder="Ex: 1511813" required autocomplete="username">
+          <input type="text" id="gate-ueb" class="form-input" placeholder="Ex: 1511813" autocomplete="username">
         </div>
 
         <div class="form-group">
           <label class="form-label" for="gate-senha">Senha do Paxtu / mAPPa</label>
-          <input type="password" id="gate-senha" class="form-input" placeholder="••••••••••••" required autocomplete="current-password">
+          <input type="password" id="gate-senha" class="form-input" placeholder="••••••••••••" autocomplete="current-password">
+        </div>
+
+        <!-- Opção Alternativa: Token de Sessão mAPPa / Paxtu -->
+        <div style="margin-bottom: 1rem;">
+          <button type="button" class="btn btn-outline" style="width: 100%; font-size: 0.78rem; padding: 4px; border-style: dashed;" onclick="alternarOpcoesAvancadasConexao()">
+            <span id="btn-avancado-label">⚙️ Opções de Servidor & Token de Sessão (Opcional)</span>
+          </button>
+          
+          <div id="box-opcoes-avancadas" style="display: none; margin-top: 0.75rem; background: rgba(11,20,17,0.7); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.75rem; text-align: left;">
+            <div class="form-group" style="margin-bottom: 0.5rem;">
+              <label class="form-label" for="gate-base-url" style="font-size: 0.75rem;">URL do Servidor mAPPa / Paxtu</label>
+              <input type="text" id="gate-base-url" class="form-input" value="https://paxtu100.escoteiros.org.br" style="font-size: 0.78rem;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="gate-direct-token" style="font-size: 0.75rem;">Ou Cole o Token de Sessão (Bearer Token)</label>
+              <input type="text" id="gate-direct-token" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIs..." style="font-size: 0.78rem;">
+              <span style="font-size: 0.7rem; color: var(--text-muted);">Caso já possua o token de autenticação gerado pelo mAPPa ou Paxtu 100.</span>
+            </div>
+          </div>
         </div>
 
         <!-- Indicador de progresso e log da extração de dados -->
@@ -50,7 +69,7 @@
         </div>
 
         <button type="submit" class="btn btn-ninja btn-submit-paxtu" id="btn-gate-submit">
-          <span>📥</span> Conectar e Buscar Dados no Paxtu / mAPPa
+          <span>📥</span> Conectar e Buscar Dados no mAPPa / Paxtu
         </button>
 
         <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">

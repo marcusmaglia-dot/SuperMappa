@@ -5,6 +5,7 @@
 // Estado da Sessão Consultiva (Populada EXCLUSIVAMENTE pela API oficial)
 const consultiveState = {
   autenticado: false,
+  baseUrl: "https://paxtu100.escoteiros.org.br",
   token: null,
   idAssociado: null,
   tipoAssociado: null,
@@ -24,16 +25,18 @@ const consultiveState = {
   redeLog: []
 };
 
-// Configurações Oficiais da API mAPPa / Paxtu 100 (Reversa SDD)
-const PAXTU_CONFIG = {
-  primaryBaseUrl: "https://paxtu100.escoteiros.org.br",
-  secondaryBaseUrl: "https://paxtu100-ueb.codebit.biz",
-  appToken: "00SSIsFJO-jBRmgb2O4MIGlLLLwqPuFIfK_q14iYzj9ZmyyflxlMWMiPWqnjyLDNMrt--Y0JvnwMiD52e66dLg",
-  corsProxies: [
-    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-  ]
-};
+// Alternar visibilidade das opções avançadas de conexão
+function alternarOpcoesAvancadasConexao() {
+  const box = document.getElementById('box-opcoes-avancadas');
+  const label = document.getElementById('btn-avancado-label');
+  if (box.style.display === 'none' || !box.style.display) {
+    box.style.display = 'block';
+    label.textContent = '▲ Ocultar Opções de Servidor & Token';
+  } else {
+    box.style.display = 'none';
+    label.textContent = '⚙️ Opções de Servidor & Token de Sessão (Opcional)';
+  }
+}
 
 // Utilitário de Log de Rede para Inspeção
 function registrarLogRede(metodo, endpoint, status, resposta) {
@@ -69,12 +72,15 @@ function registrarLogRede(metodo, endpoint, status, resposta) {
   }
 }
 
-// Cliente HTTP Inteligente do Paxtu (com fallback CORS automático para execução web)
+// Cliente HTTP do mAPPa / Paxtu
 async function fetchPaxtuApi(endpoint, options = {}) {
-  const urlOriginal = `${PAXTU_CONFIG.primaryBaseUrl}${endpoint}`;
+  const baseUrl = consultiveState.baseUrl || "https://paxtu100.escoteiros.org.br";
+  const urlCompleta = `${baseUrl}${endpoint}`;
+  
   const headers = {
+    "Accept": "application/json",
     "Content-Type": "application/json",
-    "X-App-Token": PAXTU_CONFIG.appToken,
+    "X-App-Token": "00SSIsFJO-jBRmgb2O4MIGlLLLwqPuFIfK_q14iYzj9ZmyyflxlMWMiPWqnjyLDNMrt--Y0JvnwMiD52e66dLg",
     ...(options.headers || {})
   };
 
@@ -82,48 +88,26 @@ async function fetchPaxtuApi(endpoint, options = {}) {
     headers["Authorization"] = `Bearer ${consultiveState.token}`;
   }
 
-  // 1. Tentar requisição direta
   try {
-    const res = await fetch(urlOriginal, {
+    const res = await fetch(urlCompleta, {
       ...options,
       headers
     });
-    const data = await res.json().catch(() => null);
+    
+    let data = null;
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      data = await res.json().catch(() => null);
+    } else {
+      const text = await res.text().catch(() => "");
+      data = { rawText: text.substring(0, 500) };
+    }
+
     registrarLogRede(options.method || 'GET', endpoint, res.status, data);
     return { ok: res.ok, status: res.status, data };
-  } catch (directErr) {
-    // 2. Se bloqueado por CORS no navegador, tentar via proxies transparentes
-    console.warn(`[PaxtuApi] Erro direto em ${endpoint} (${directErr.message}). Tentando fallback CORS...`);
-
-    for (let proxyFn of PAXTU_CONFIG.corsProxies) {
-      try {
-        const proxiedUrl = proxyFn(urlOriginal);
-        const resProxy = await fetch(proxiedUrl, {
-          ...options,
-          headers
-        });
-        const dataProxy = await resProxy.json().catch(() => null);
-        registrarLogRede(options.method || 'GET', `${endpoint} [via proxy]`, resProxy.status, dataProxy);
-        return { ok: resProxy.ok, status: resProxy.status, data: dataProxy };
-      } catch (proxyErr) {
-        console.warn(`[PaxtuApi] Falha no proxy (${proxyErr.message})`);
-      }
-    }
-
-    // 3. Tentar servidor secundário Codebit
-    try {
-      const urlSecundaria = `${PAXTU_CONFIG.secondaryBaseUrl}${endpoint}`;
-      const resSec = await fetch(urlSecundaria, {
-        ...options,
-        headers
-      });
-      const dataSec = await resSec.json().catch(() => null);
-      registrarLogRede(options.method || 'GET', `${endpoint} [codebit]`, resSec.status, dataSec);
-      return { ok: resSec.ok, status: resSec.status, data: dataSec };
-    } catch (secErr) {
-      registrarLogRede(options.method || 'GET', endpoint, 'Falha de Conexão', secErr.message);
-      return { ok: false, status: 0, error: secErr.message };
-    }
+  } catch (err) {
+    registrarLogRede(options.method || 'GET', endpoint, 'Erro de Rede', err.message);
+    return { ok: false, status: 0, error: err.message };
   }
 }
 
@@ -133,77 +117,97 @@ function atualizarPassoExtracao(titulo) {
   if (titleEl) titleEl.textContent = titulo;
 }
 
-// 1. Ferramenta de Extração em Tempo Real: Executada Imediatamente após o Login
+// 1. Processar Login / Extração dos dados do mAPPa
 async function processarLoginGatekeeper() {
-  const ueb = document.getElementById('gate-ueb').value.trim();
-  const senha = document.getElementById('gate-senha').value;
+  const ueb = (document.getElementById('gate-ueb').value || '').trim();
+  const senha = (document.getElementById('gate-senha').value || '');
+  const customBaseUrl = (document.getElementById('gate-base-url').value || '').trim();
+  const directToken = (document.getElementById('gate-direct-token').value || '').trim();
+
   const btnSubmit = document.getElementById('btn-gate-submit');
   const progressBox = document.getElementById('login-sync-progress');
   const stepLog = document.getElementById('sync-step-log');
 
-  if (!ueb || !senha) {
-    alert("Por favor, preencha seu Registro UEB e senha do Paxtu / mAPPa.");
+  if (customBaseUrl) {
+    consultiveState.baseUrl = customBaseUrl.replace(/\/+$/, '');
+    document.getElementById('insp-base-url').textContent = consultiveState.baseUrl;
+  }
+
+  if (!directToken && (!ueb || !senha)) {
+    alert("Por favor, preencha o seu Registro UEB e Senha, ou informe diretamente o Token de Sessão do Paxtu / mAPPa.");
     return;
   }
 
   // Prepara interface de extração
   btnSubmit.disabled = true;
-  btnSubmit.innerHTML = '<span>⏳</span> Autenticando e extraindo dados do Paxtu...';
+  btnSubmit.innerHTML = '<span>⏳</span> Conectando ao servidor do mAPPa e baixando dados...';
   progressBox.style.display = 'block';
   stepLog.innerHTML = '';
 
-  atualizarPassoExtracao("1/4: Autenticando via /api/login no Paxtu 100...");
+  let tokenAtivo = directToken;
 
-  // Passo 1: Autenticação oficial no Paxtu
-  const authRes = await fetchPaxtuApi("/api/login", {
-    method: "POST",
-    body: JSON.stringify({ user: ueb, pass: senha })
-  });
+  // Se o usuário forneceu credenciais e não tem token direto:
+  if (!tokenAtivo) {
+    atualizarPassoExtracao(`1/4: Autenticando na API do mAPPa (${consultiveState.baseUrl}/api/login)...`);
 
-  // Se credenciais inválidas ou erro
-  if (!authRes.ok || !authRes.data || (!authRes.data.token && !authRes.data.idAssociado)) {
-    btnSubmit.disabled = false;
-    btnSubmit.innerHTML = '<span>📥</span> Conectar e Buscar Dados no Paxtu / mAPPa';
-    
-    // Tratamento especial se o servidor da UEB estiver temporariamente inacessível
-    let msgErro = "Credenciais inválidas no Paxtu 100. Verifique seu registro UEB e senha.";
-    if (authRes.status === 0) {
-      msgErro = "Não foi possível alcançar o servidor do Paxtu 100 (paxtu100.escoteiros.org.br). Verifique sua conexão à internet.";
-    } else if (authRes.data && authRes.data.mensagem) {
-      msgErro = `Paxtu retornou: ${authRes.data.mensagem}`;
+    const authRes = await fetchPaxtuApi("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ user: ueb, pass: senha })
+    });
+
+    if (authRes.ok && authRes.data && (authRes.data.token || authRes.data.access_token)) {
+      tokenAtivo = authRes.data.token || authRes.data.access_token;
+      consultiveState.idAssociado = authRes.data.idAssociado || ueb;
+      consultiveState.tipoAssociado = authRes.data.tipoAssociado || "adulto";
+    } else {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = '<span>📥</span> Conectar e Buscar Dados no mAPPa / Paxtu';
+      
+      let detalhe = "Falha de autenticação no servidor mAPPa.";
+      if (authRes.status === 401) {
+        detalhe = `O servidor respondeu HTTP 401: ${authRes.data && authRes.data.error ? authRes.data.error : 'Token ou credenciais inválidas'}.`;
+      } else if (authRes.status === 0) {
+        detalhe = `Erro de conexão direta (${authRes.error || 'Falha de rede'}).`;
+      } else if (authRes.data && authRes.data.message) {
+        detalhe = `Resposta da UEB: ${authRes.data.message}`;
+      }
+
+      const usarToken = confirm(
+        `${detalhe}\n\nO servidor oficial da UEB exige autenticação ou sessão ativa.\n\nDeseja inserir um Token de Sessão (Bearer Token) ativo ou verificar as opções avançadas?`
+      );
+
+      if (usarToken) {
+        alternarOpcoesAvancadasConexao();
+        document.getElementById('gate-direct-token').focus();
+      }
+      return;
     }
-    
-    alert(msgErro);
-    return;
   }
 
-  // Guardar Token oficial
+  // Com o token em mãos:
   consultiveState.autenticado = true;
-  consultiveState.token = authRes.data.token || "token_paxtu_ativo";
-  consultiveState.idAssociado = authRes.data.idAssociado || ueb;
-  consultiveState.tipoAssociado = authRes.data.tipoAssociado || "adulto";
+  consultiveState.token = tokenAtivo;
+  document.getElementById('insp-token-preview').textContent = tokenAtivo.substring(0, 24) + '...';
 
-  document.getElementById('insp-token-preview').textContent = consultiveState.token.substring(0, 24) + '...';
-
-  // Passo 2: Buscar Perfil do Escotista
+  // Passo 2: Buscar Perfil Oficial
   atualizarPassoExtracao("2/4: Consultando perfil oficial via /api/perfil...");
   const perfilRes = await fetchPaxtuApi("/api/perfil");
   const perfil = perfilRes.data || {};
 
   consultiveState.chefia = {
-    nome: perfil.nomeCompleto || perfil.nome || `Escotista UEB ${ueb}`,
-    ueb: perfil.registroUeb || ueb,
-    funcao: perfil.cargo || perfil.funcao || "Escotista Cadastrado",
-    nivel: perfil.nivelFormacao || "Nível Básico / Avançado"
+    nome: perfil.nomeCompleto || perfil.nome || `Escotista UEB ${ueb || 'Conectado'}`,
+    ueb: perfil.registroUeb || ueb || "--",
+    funcao: perfil.cargo || perfil.funcao || "Escotista de Seção",
+    nivel: perfil.nivelFormacao || "Nível Avançado / Básico"
   };
 
   consultiveState.unidade = {
-    grupo: perfil.grupoEscoteiro || perfil.nomeUel || "Grupo Escoteiro Vinculado no Paxtu",
+    grupo: perfil.grupoEscoteiro || perfil.nomeUel || "Grupo Escoteiro (mAPPa Oficial)",
     numeral: perfil.numeral || perfil.codigoUel || "UEL",
     cidade: perfil.cidade || "Brasil"
   };
 
-  // Passo 3: Buscar Seções da UEL sob responsabilidade da chefia
+  // Passo 3: Buscar Seções
   atualizarPassoExtracao("3/4: Buscando seções da UEL via /api/secoes...");
   const secoesRes = await fetchPaxtuApi("/api/secoes");
   let secoes = [];
@@ -214,11 +218,10 @@ async function processarLoginGatekeeper() {
     secoes = secoesRes.data.secoes;
   }
 
-  // Se não retornou lista explícita de seções, cria a seção a partir do perfil do escotista
   if (secoes.length === 0) {
     secoes = [{
       idSecao: perfil.idSecao || 1,
-      nomeSecao: perfil.secao || "Seção Geral",
+      nomeSecao: perfil.secao || "Tropa / Seção Ativa",
       tipoRamo: perfil.ramoAtual || "Escoteiro"
     }];
   }
@@ -226,16 +229,17 @@ async function processarLoginGatekeeper() {
   consultiveState.secoes = secoes;
   consultiveState.secaoAtivaId = secoes[0].idSecao;
 
-  // Passo 4: Extrair Jovens e Histórico da Seção Ativa
-  atualizarPassoExtracao("4/4: Baixando associados e histórico de progressões...");
+  // Passo 4: Buscar Associados e Progressões da Seção
+  atualizarPassoExtracao("4/4: Baixando associados, patrulhas e progressões...");
   await carregarDadosSecao(consultiveState.secaoAtivaId);
 
   consultiveState.ultimaSincronizacao = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  // Salvar sessão segura
+  // Salvar sessão segura no navegador
   try {
     sessionStorage.setItem('supermappa_consultivo_session', JSON.stringify({
       autenticado: true,
+      baseUrl: consultiveState.baseUrl,
       token: consultiveState.token,
       chefia: consultiveState.chefia,
       unidade: consultiveState.unidade,
@@ -250,7 +254,7 @@ async function processarLoginGatekeeper() {
   }
 
   btnSubmit.disabled = false;
-  btnSubmit.innerHTML = '<span>📥</span> Conectar e Buscar Dados no Paxtu / mAPPa';
+  btnSubmit.innerHTML = '<span>📥</span> Conectar e Buscar Dados no mAPPa / Paxtu';
   progressBox.style.display = 'none';
 
   // Ocultar login e mostrar aplicação
@@ -261,11 +265,9 @@ async function processarLoginGatekeeper() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// 2. Carregar Dados Reais da Seção Selecionada a partir dos Endpoints do Paxtu
+// 2. Carregar Dados Reais da Seção a partir dos Endpoints do mAPPa
 async function carregarDadosSecao(idSecao) {
   const secaoAtiva = consultiveState.secoes.find(s => s.idSecao == idSecao) || consultiveState.secoes[0];
-  
-  // Buscar associados da seção
   let listaAssociados = [];
 
   // Tentar endpoints conhecidos do mAPPa
@@ -273,10 +275,8 @@ async function carregarDadosSecao(idSecao) {
   if (resSecaoAssociados.ok && Array.isArray(resSecaoAssociados.data)) {
     listaAssociados = resSecaoAssociados.data;
   } else {
-    // Tentar fila de itens/jovens da seção
     const resItens = await fetchPaxtuApi(`/api/itens-revisao?idSecao=${idSecao}`);
     if (resItens.ok && Array.isArray(resItens.data)) {
-      // Extrair associados únicos da lista de revisão
       const mapa = new Map();
       resItens.data.forEach(item => {
         if (item.idAssociado && !mapa.has(item.idAssociado)) {
@@ -294,7 +294,6 @@ async function carregarDadosSecao(idSecao) {
     }
   }
 
-  // Tentar assessorados se a lista ainda estiver vazia
   if (listaAssociados.length === 0) {
     const resAssessorados = await fetchPaxtuApi(`/api/assessorados`);
     if (resAssessorados.ok && Array.isArray(resAssessorados.data)) {
@@ -302,7 +301,7 @@ async function carregarDadosSecao(idSecao) {
     }
   }
 
-  // Processar e mapear associados obtidos do Paxtu
+  // Mapear associados e buscar dados detalhados na API
   const jovensMapeados = [];
   const patrulhasSet = new Set();
 
@@ -316,7 +315,7 @@ async function carregarDadosSecao(idSecao) {
 
     patrulhasSet.add(patrulha);
 
-    // Buscar progresso e especialidades deste jovem na API do Paxtu
+    // Buscar progresso, especialidades e insígnias do jovem
     const resBlocos = await fetchPaxtuApi(`/api/blocos/associado?idAssociado=${jId}`);
     const blocosData = (resBlocos.ok && resBlocos.data) ? resBlocos.data : [];
 
@@ -329,7 +328,6 @@ async function carregarDadosSecao(idSecao) {
     const resAcoes = await fetchPaxtuApi(`/api/acoes/associado?idAssociado=${jId}`);
     const acoesData = (resAcoes.ok && Array.isArray(resAcoes.data)) ? resAcoes.data : [];
 
-    // Calcular percentual de progressão
     let progressoEtapa = 0;
     if (Array.isArray(blocosData) && blocosData.length > 0) {
       const concluidos = blocosData.filter(b => b.concluido).length;
@@ -351,7 +349,7 @@ async function carregarDadosSecao(idSecao) {
       etapa,
       progressoEtapa,
       emergencia: {
-        pais: raw.filiacao || raw.nomeMae || raw.nomePai || "Cadastrado no Paxtu",
+        pais: raw.filiacao || raw.nomeMae || raw.nomePai || "Cadastrado no mAPPa",
         tel: raw.telefoneEmergencia || raw.telefone || "--",
         tipoSanguineo: raw.tipoSanguineo || "--"
       },
@@ -380,13 +378,12 @@ async function carregarDadosSecao(idSecao) {
   }
 }
 
-// 3. Renderizar o Portal Consultivo da Chefia
+// 3. Renderizar Portal Consultivo
 function renderizarPortalConsultivo() {
   if (!consultiveState.autenticado || !consultiveState.unidade) return;
 
   const secaoAtiva = consultiveState.secoes.find(s => s.idSecao == consultiveState.secaoAtivaId) || consultiveState.secoes[0] || {};
 
-  // Banner
   document.getElementById('banner-grupo-nome').textContent = consultiveState.unidade.grupo;
   document.getElementById('banner-numeral').textContent = consultiveState.unidade.numeral;
   document.getElementById('banner-ramo-nome').textContent = secaoAtiva.tipoRamo || "Escoteiro";
@@ -394,7 +391,6 @@ function renderizarPortalConsultivo() {
   document.getElementById('banner-chefia-nome').textContent = consultiveState.chefia.nome;
   document.getElementById('banner-chefia-ueb').textContent = `UEB: ${consultiveState.chefia.ueb} • ${consultiveState.chefia.funcao}`;
 
-  // Seletor de Seções ativas do Escotista
   const selectSecao = document.getElementById('select-secao-ativa');
   selectSecao.innerHTML = '';
   consultiveState.secoes.forEach(sec => {
@@ -405,7 +401,6 @@ function renderizarPortalConsultivo() {
     selectSecao.appendChild(opt);
   });
 
-  // Métricas
   const totalJovens = consultiveState.jovens.length;
   const totalPatrulhas = consultiveState.patrulhas.length;
   const totalEspecialidades = consultiveState.jovens.reduce((acc, j) => acc + (j.especialidades ? j.especialidades.length : 0), 0);
@@ -418,7 +413,6 @@ function renderizarPortalConsultivo() {
   document.getElementById('metric-total-especialidades').textContent = totalEspecialidades;
   document.getElementById('metric-media-progressao').textContent = `${mediaProgressao}%`;
 
-  // Select de Filtro de Patrulhas
   const selectPatrulha = document.getElementById('filter-patrulha');
   selectPatrulha.innerHTML = '<option value="todas">Todas as Patrulhas</option>';
   consultiveState.patrulhas.forEach(p => {
@@ -431,7 +425,7 @@ function renderizarPortalConsultivo() {
   filtrarJovensConsultivo();
 }
 
-// 4. Trocar Seção Ativa (para escotistas que chefiam múltiplas seções no Paxtu)
+// 4. Trocar Seção Ativa
 async function trocarSecaoAtiva(novoIdSecao) {
   if (!novoIdSecao || novoIdSecao == consultiveState.secaoAtivaId) return;
 
@@ -443,10 +437,10 @@ async function trocarSecaoAtiva(novoIdSecao) {
   consultiveState.ultimaSincronizacao = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   renderizarPortalConsultivo();
-  statusText.textContent = 'Paxtu Sincronizado';
+  statusText.textContent = 'mAPPa Sincronizado';
 }
 
-// 5. Filtrar e Exibir Jovens Reais
+// 5. Filtrar e Exibir Jovens Reais da Base
 function filtrarJovensConsultivo() {
   const busca = (document.getElementById('filter-search').value || '').toLowerCase().trim();
   const filtroPatrulha = document.getElementById('filter-patrulha').value;
@@ -472,16 +466,15 @@ function filtrarJovensConsultivo() {
     container.innerHTML = `
       <div class="empty-state-box" style="padding: 3rem 1rem; text-align: center; background: var(--bg-card); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
         <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏕️</div>
-        <h3 style="color: #fff; margin-bottom: 0.5rem;">Nenhum jovem encontrado no banco do Paxtu para esta seção</h3>
+        <h3 style="color: #fff; margin-bottom: 0.5rem;">Nenhum associado encontrado nesta seção no mAPPa</h3>
         <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 600px; margin: 0 auto;">
-          A API do Paxtu 100 retornou os dados da UEL e da Chefia com sucesso. Caso sua seção possua jovens ativos, verifique se seu usuário tem permissão de escotista na seção ou acesse o botão "Inspecionar API Paxtu" para verificar a resposta bruta do servidor.
+          A API do mAPPa / Paxtu 100 conectou com sucesso. Caso sua seção possua jovens cadastrados, clique em <strong>Inspecionar API Paxtu</strong> para checar as respostas dos endpoints.
         </p>
       </div>
     `;
     return;
   }
 
-  // Agrupar por Patrulha
   const patrulhasMap = {};
   consultiveState.patrulhas.forEach(p => { patrulhasMap[p] = []; });
 
@@ -508,7 +501,7 @@ function filtrarJovensConsultivo() {
           <span>🚩</span> Patrulha ${nomePatrulha}
         </h3>
         <span class="brand-badge" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: var(--brand-green-light);">
-          ${jovensPatrulha.length} ${jovensPatrulha.length === 1 ? 'jovem' : 'jovens'} no Paxtu
+          ${jovensPatrulha.length} ${jovensPatrulha.length === 1 ? 'jovem' : 'jovens'} no mAPPa
         </span>
       </div>
       <div class="youths-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
@@ -568,7 +561,7 @@ function filtrarJovensConsultivo() {
           </div>
 
           <button class="btn btn-primary" style="width: 100%; font-size: 0.82rem; padding: 0.5rem;" onclick="abrirFichaJovemConsultiva('${j.id}')">
-            <span>📄</span> Ver Histórico Completo no Paxtu
+            <span>📄</span> Ver Histórico Completo no mAPPa
           </button>
         `;
 
@@ -580,7 +573,7 @@ function filtrarJovensConsultivo() {
   });
 }
 
-// 6. Modal da Ficha do Jovem (Consultivo)
+// 6. Modal da Ficha do Jovem
 function abrirFichaJovemConsultiva(idJovem) {
   const jovem = consultiveState.jovens.find(j => String(j.id) === String(idJovem));
   if (!jovem) return;
@@ -597,7 +590,6 @@ function abrirFichaJovemConsultiva(idJovem) {
   document.getElementById('ficha-progresso-percent').textContent = `${jovem.progressoEtapa}%`;
   document.getElementById('ficha-progresso-bar').style.width = `${jovem.progressoEtapa}%`;
 
-  // Aba 1: Eixos
   const eixosContainer = document.getElementById('ficha-eixos-container');
   eixosContainer.innerHTML = '';
   if (jovem.progressoDetalhado && jovem.progressoDetalhado.length > 0) {
@@ -610,16 +602,15 @@ function abrirFichaJovemConsultiva(idJovem) {
           <span style="color: var(--brand-green-light); font-weight: 700;">${bloco.concluido ? 'Concluído' : 'Em Andamento'}</span>
         </div>
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
-          Sincronizado da base de progressão Paxtu
+          Sincronizado da base de progressão mAPPa / Paxtu
         </div>
       `;
       eixosContainer.appendChild(card);
     });
   } else {
-    eixosContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem;">Nenhum bloco de competências específico retornado pelo Paxtu.</p>';
+    eixosContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem;">Nenhum bloco de competências específico retornado pela API.</p>';
   }
 
-  // Aba 2: Especialidades
   const espContainer = document.getElementById('ficha-especialidades-container');
   espContainer.innerHTML = '';
   if (jovem.especialidades && jovem.especialidades.length > 0) {
@@ -631,16 +622,15 @@ function abrirFichaJovemConsultiva(idJovem) {
         <div>
           <h4 style="color: #fff; font-size: 0.95rem; font-weight: 700; margin-bottom: 2px;">${esp.nome}</h4>
           <div style="font-size: 0.78rem; color: var(--scout-gold-light); font-weight: 600;">Nível ${esp.nivel} &bull; Ramo ${esp.ramo}</div>
-          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Concedida em: ${esp.data} (Oficial Paxtu)</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Concedida em: ${esp.data} (Oficial UEB)</div>
         </div>
       `;
       espContainer.appendChild(espCard);
     });
   } else {
-    espContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">O jovem ainda não possui especialidades registradas no Paxtu.</p>';
+    espContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">O jovem ainda não possui especialidades registradas no mAPPa.</p>';
   }
 
-  // Aba 3: Histórico de Atividades
   const histContainer = document.getElementById('ficha-historico-container');
   histContainer.innerHTML = '';
   if (jovem.atividadesHistorico && jovem.atividadesHistorico.length > 0) {
@@ -651,7 +641,7 @@ function abrirFichaJovemConsultiva(idJovem) {
             <th style="padding: 0.5rem;">Atividade / Evento</th>
             <th style="padding: 0.5rem;">Data Oficial</th>
             <th style="padding: 0.5rem;">Local</th>
-            <th style="padding: 0.5rem;">Presença Paxtu</th>
+            <th style="padding: 0.5rem;">Status mAPPa</th>
           </tr>
         </thead>
         <tbody>
@@ -667,10 +657,9 @@ function abrirFichaJovemConsultiva(idJovem) {
       </table>
     `;
   } else {
-    histContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">Sem histórico de eventos registrado no Paxtu para este associado.</p>';
+    histContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">Sem histórico de eventos registrado no mAPPa para este associado.</p>';
   }
 
-  // Aba 4: Ficha Cadastral Oficial
   const cadContainer = document.getElementById('ficha-cadastral-container');
   cadContainer.innerHTML = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
@@ -730,14 +719,14 @@ function fecharModalInspecaoPaxtu() {
   document.getElementById('modal-inspecao-paxtu').classList.remove('active');
 }
 
-// 8. Reimportar Dados Manualmente
+// 8. Reimportar Dados
 async function reimportarDadosPaxtu() {
   const statusPill = document.getElementById('header-status-pill');
   const statusText = document.getElementById('header-status-text');
 
   statusPill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
   statusPill.style.color = '#fbbf24';
-  statusText.textContent = 'Buscando dados no Paxtu...';
+  statusText.textContent = 'Buscando dados no mAPPa...';
 
   await carregarDadosSecao(consultiveState.secaoAtivaId);
   consultiveState.ultimaSincronizacao = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -746,14 +735,14 @@ async function reimportarDadosPaxtu() {
 
   statusPill.style.borderColor = 'rgba(16, 185, 129, 0.35)';
   statusPill.style.color = '#34d399';
-  statusText.textContent = 'Paxtu Sincronizado';
+  statusText.textContent = 'mAPPa Sincronizado';
 
-  alert(`Dados da seção atualizados com sucesso da API do Paxtu 100!`);
+  alert(`Dados da seção atualizados com sucesso da API do mAPPa!`);
 }
 
 // 9. Logout
 function fazerLogoutPaxtu() {
-  if (confirm("Deseja encerrar a sessão consultiva do Paxtu?")) {
+  if (confirm("Deseja encerrar a sessão consultiva do mAPPa?")) {
     sessionStorage.removeItem('supermappa_consultivo_session');
     consultiveState.autenticado = false;
     consultiveState.token = null;
@@ -777,6 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const sess = JSON.parse(sessionRaw);
       if (sess && sess.autenticado && sess.token) {
         consultiveState.autenticado = true;
+        consultiveState.baseUrl = sess.baseUrl || "https://paxtu100.escoteiros.org.br";
         consultiveState.token = sess.token;
         consultiveState.chefia = sess.chefia;
         consultiveState.unidade = sess.unidade;
@@ -789,6 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('screen-login').style.display = 'none';
         document.getElementById('screen-app').style.display = 'block';
         document.getElementById('insp-token-preview').textContent = sess.token.substring(0, 24) + '...';
+        document.getElementById('insp-base-url').textContent = consultiveState.baseUrl;
         renderizarPortalConsultivo();
         return;
       }
