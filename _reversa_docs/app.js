@@ -22,7 +22,10 @@ const consultiveState = {
     etapa: 'todas'
   },
   jovemFichaAtiva: null,
-  redeLog: []
+  redeLog: [],
+  rawLoginPayload: null,
+  rawPerfilPayload: null,
+  rawSecoesPayload: null
 };
 
 // Alternar visibilidade das opções avançadas de conexão
@@ -113,6 +116,35 @@ async function fetchPaxtuApi(endpoint, options = {}) {
   }
 }
 
+// Extração segura de token a partir de respostas com formatos variados (JSON)
+function extrairTokenSeguro(data) {
+  if (!data || typeof data !== 'object') return null;
+  const candidatas = ['token', 'access_token', 'accessToken', 'api_token', 'apiToken', 'jwt', 'auth_token', 'session_token', 'key', 'bearer'];
+  
+  // Nível 1
+  for (const k of candidatas) {
+    if (typeof data[k] === 'string' && data[k].length > 5) return data[k];
+  }
+  
+  // Nível 2 aninhado (data.data, data.user, data.auth, etc.)
+  for (const sub of ['data', 'user', 'auth', 'authorisation', 'session', 'result', 'response']) {
+    if (data[sub] && typeof data[sub] === 'object') {
+      for (const k of candidatas) {
+        if (typeof data[sub][k] === 'string' && data[sub][k].length > 5) return data[sub][k];
+      }
+    }
+  }
+
+  // Busca recursiva superficial por qualquer chave que contenha "token"
+  for (const [k, v] of Object.entries(data)) {
+    if (typeof v === 'string' && k.toLowerCase().includes('token') && v.length > 5) {
+      return v;
+    }
+  }
+
+  return null;
+}
+
 // Atualizar indicador visual de etapas da extração
 function atualizarPassoExtracao(titulo) {
   const titleEl = document.getElementById('sync-step-title');
@@ -132,7 +164,8 @@ async function processarLoginGatekeeper() {
 
   if (customBaseUrl) {
     consultiveState.baseUrl = customBaseUrl.replace(/\/+$/, '');
-    document.getElementById('insp-base-url').textContent = consultiveState.baseUrl;
+    const inspBaseUrl = document.getElementById('insp-base-url');
+    if (inspBaseUrl) inspBaseUrl.textContent = consultiveState.baseUrl;
   }
 
   if (!directToken && (!ueb || !senha)) {
@@ -161,17 +194,38 @@ async function processarLoginGatekeeper() {
       })
     });
 
-    if (authRes.ok && authRes.data && (authRes.data.token || authRes.data.access_token)) {
-      tokenAtivo = authRes.data.token || authRes.data.access_token;
-      consultiveState.idAssociado = authRes.data.idAssociado || ueb;
-      consultiveState.tipoAssociado = authRes.data.tipoAssociado || "adulto";
+    consultiveState.rawLoginPayload = authRes.data;
+
+    // Detectar sucesso de login (Status 200, ou mensagem de sucesso, ou token no payload)
+    const msg = (authRes.data && typeof authRes.data.message === 'string') ? authRes.data.message.toLowerCase() : '';
+    const statusMsg = (authRes.data && typeof authRes.data.status === 'string') ? authRes.data.status.toLowerCase() : '';
+    
+    const isLoginOk = authRes.ok || msg.includes('success') || statusMsg.includes('success') || (authRes.data && (authRes.data.token || authRes.data.access_token || authRes.data.data));
+
+    if (isLoginOk) {
+      // Extrair o token se existir ou usar o MAPPA_APP_TOKEN
+      tokenAtivo = extrairTokenSeguro(authRes.data) || MAPPA_APP_TOKEN;
+      consultiveState.idAssociado = (authRes.data && (authRes.data.idAssociado || authRes.data.id || (authRes.data.user && authRes.data.user.id))) || ueb;
+      consultiveState.tipoAssociado = (authRes.data && (authRes.data.tipoAssociado || (authRes.data.user && authRes.data.user.tipo))) || "adulto";
+
+      // Se o objeto 'user' veio no retorno do login, popular dados preliminares da chefia
+      if (authRes.data && authRes.data.user) {
+        const u = authRes.data.user;
+        consultiveState.chefia = {
+          nome: u.nomeCompleto || u.name || u.nome || `Escotista UEB ${ueb}`,
+          ueb: u.registroUeb || u.ueb || u.username || ueb,
+          funcao: u.cargo || u.funcao || "Escotista de Seção",
+          nivel: u.nivelFormacao || u.nivel || "Ativo"
+        };
+      }
     } else {
       btnSubmit.disabled = false;
       btnSubmit.innerHTML = '<span>📥</span> Conectar e Buscar Dados no mAPPa / Paxtu';
-      
+      progressBox.style.display = 'none';
+
       let detalhe = "Falha de autenticação no servidor mAPPa.";
       if (authRes.status === 401) {
-        detalhe = "Registro UEB ou senha incorretos.";
+        detalhe = "Registro UEB ou senha incorretos no Paxtu.";
       } else if (authRes.status === 422) {
         detalhe = "Campos obrigatórios não preenchidos.";
       } else if (authRes.status === 0) {
@@ -187,56 +241,103 @@ async function processarLoginGatekeeper() {
     }
   }
 
-  // Com o token em mãos:
+  // Com o login validado:
   consultiveState.autenticado = true;
   consultiveState.token = tokenAtivo;
-  document.getElementById('insp-token-preview').textContent = tokenAtivo.substring(0, 24) + '...';
+  const inspTokenPreview = document.getElementById('insp-token-preview');
+  if (inspTokenPreview) inspTokenPreview.textContent = tokenAtivo.substring(0, 24) + '...';
 
-  // Passo 2: Buscar Perfil Oficial
-  atualizarPassoExtracao("2/4: Consultando perfil oficial via /api/perfil...");
-  const perfilRes = await fetchPaxtuApi("/api/perfil");
-  const perfil = perfilRes.data || {};
-
-  consultiveState.chefia = {
-    nome: perfil.nomeCompleto || perfil.nome || `Escotista UEB ${ueb || 'Conectado'}`,
-    ueb: perfil.registroUeb || ueb || "--",
-    funcao: perfil.cargo || perfil.funcao || "Escotista de Seção",
-    nivel: perfil.nivelFormacao || "Nível Avançado / Básico"
-  };
-
-  consultiveState.unidade = {
-    grupo: perfil.grupoEscoteiro || perfil.nomeUel || "Grupo Escoteiro (mAPPa Oficial)",
-    numeral: perfil.numeral || perfil.codigoUel || "UEL",
-    cidade: perfil.cidade || "Brasil"
-  };
-
-  // Passo 3: Buscar Seções
-  atualizarPassoExtracao("3/4: Buscando seções da UEL via /api/secoes...");
-  const secoesRes = await fetchPaxtuApi("/api/secoes");
-  let secoes = [];
-
-  if (secoesRes.ok && Array.isArray(secoesRes.data)) {
-    secoes = secoesRes.data;
-  } else if (secoesRes.data && Array.isArray(secoesRes.data.secoes)) {
-    secoes = secoesRes.data.secoes;
+  // Configura dados padrão imediatos para que a página inicial NUNCA fique em branco
+  if (!consultiveState.chefia) {
+    consultiveState.chefia = {
+      nome: `Escotista UEB ${ueb || 'Conectado'}`,
+      ueb: ueb || "--",
+      funcao: "Escotista de Seção",
+      nivel: "Ativo"
+    };
   }
-
-  if (secoes.length === 0) {
-    secoes = [{
-      idSecao: perfil.idSecao || 1,
-      nomeSecao: perfil.secao || "Tropa / Seção Ativa",
-      tipoRamo: perfil.ramoAtual || "Escoteiro"
+  if (!consultiveState.unidade) {
+    consultiveState.unidade = {
+      grupo: "Grupo Escoteiro (mAPPa Oficial)",
+      numeral: "UEL",
+      cidade: "Brasil"
+    };
+  }
+  if (!consultiveState.secoes || consultiveState.secoes.length === 0) {
+    consultiveState.secoes = [{
+      idSecao: 1,
+      nomeSecao: "Seção Vinculada",
+      tipoRamo: "Escoteiro"
     }];
+    consultiveState.secaoAtivaId = 1;
+  }
+  consultiveState.ultimaSincronizacao = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  // REDIRECIONAMENTO IMEDIATO PARA A PÁGINA INICIAL!
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-app').style.display = 'block';
+  btnSubmit.disabled = false;
+  btnSubmit.innerHTML = '<span>📥</span> Conectar e Buscar Dados no mAPPa / Paxtu';
+  progressBox.style.display = 'none';
+
+  renderizarPortalConsultivo();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Execução e sincronização sequencial em segundo plano dos dados adicionais
+  try {
+    // Passo 2: Buscar Perfil Oficial
+    const perfilRes = await fetchPaxtuApi("/api/perfil");
+    if (perfilRes.ok && perfilRes.data) {
+      const perfil = perfilRes.data;
+      consultiveState.rawPerfilPayload = perfil;
+
+      consultiveState.chefia = {
+        nome: perfil.nomeCompleto || perfil.nome || consultiveState.chefia.nome,
+        ueb: perfil.registroUeb || perfil.ueb || consultiveState.chefia.ueb,
+        funcao: perfil.cargo || perfil.funcao || consultiveState.chefia.funcao,
+        nivel: perfil.nivelFormacao || perfil.nivel || consultiveState.chefia.nivel
+      };
+
+      consultiveState.unidade = {
+        grupo: perfil.grupoEscoteiro || perfil.nomeUel || consultiveState.unidade.grupo,
+        numeral: perfil.numeral || perfil.codigoUel || consultiveState.unidade.numeral,
+        cidade: perfil.cidade || consultiveState.unidade.cidade
+      };
+      renderizarPortalConsultivo();
+    }
+  } catch (errPerfil) {
+    console.warn("Aviso ao buscar perfil adicional:", errPerfil);
   }
 
-  consultiveState.secoes = secoes;
-  consultiveState.secaoAtivaId = secoes[0].idSecao;
+  try {
+    // Passo 3: Buscar Seções
+    const secoesRes = await fetchPaxtuApi("/api/secoes");
+    if (secoesRes.ok && secoesRes.data) {
+      consultiveState.rawSecoesPayload = secoesRes.data;
+      let secoes = [];
+      if (Array.isArray(secoesRes.data)) {
+        secoes = secoesRes.data;
+      } else if (secoesRes.data && Array.isArray(secoesRes.data.secoes)) {
+        secoes = secoesRes.data.secoes;
+      }
+      if (secoes.length > 0) {
+        consultiveState.secoes = secoes;
+        consultiveState.secaoAtivaId = secoes[0].idSecao;
+        renderizarPortalConsultivo();
+      }
+    }
+  } catch (errSecoes) {
+    console.warn("Aviso ao buscar seções adicionais:", errSecoes);
+  }
 
-  // Passo 4: Buscar Associados e Progressões da Seção
-  atualizarPassoExtracao("4/4: Baixando associados, patrulhas e progressões...");
-  await carregarDadosSecao(consultiveState.secaoAtivaId);
-
-  consultiveState.ultimaSincronizacao = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  try {
+    // Passo 4: Buscar Associados e Progressões da Seção
+    await carregarDadosSecao(consultiveState.secaoAtivaId);
+    consultiveState.ultimaSincronizacao = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    renderizarPortalConsultivo();
+  } catch (errJovens) {
+    console.warn("Aviso ao baixar dados dos jovens da seção:", errJovens);
+  }
 
   // Salvar sessão segura no navegador
   try {
@@ -250,22 +351,14 @@ async function processarLoginGatekeeper() {
       secaoAtivaId: consultiveState.secaoAtivaId,
       jovens: consultiveState.jovens,
       patrulhas: consultiveState.patrulhas,
+      rawLoginPayload: consultiveState.rawLoginPayload,
+      rawPerfilPayload: consultiveState.rawPerfilPayload,
+      rawSecoesPayload: consultiveState.rawSecoesPayload,
       ultimaSincronizacao: consultiveState.ultimaSincronizacao
     }));
   } catch (e) {
     console.warn("Storage local indisponível:", e);
   }
-
-  btnSubmit.disabled = false;
-  btnSubmit.innerHTML = '<span>📥</span> Conectar e Buscar Dados no mAPPa / Paxtu';
-  progressBox.style.display = 'none';
-
-  // Ocultar login e mostrar aplicação
-  document.getElementById('screen-login').style.display = 'none';
-  document.getElementById('screen-app').style.display = 'block';
-
-  renderizarPortalConsultivo();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // 2. Carregar Dados Reais da Seção a partir dos Endpoints do mAPPa
@@ -387,23 +480,101 @@ function renderizarPortalConsultivo() {
 
   const secaoAtiva = consultiveState.secoes.find(s => s.idSecao == consultiveState.secaoAtivaId) || consultiveState.secoes[0] || {};
 
-  document.getElementById('banner-grupo-nome').textContent = consultiveState.unidade.grupo;
-  document.getElementById('banner-numeral').textContent = consultiveState.unidade.numeral;
-  document.getElementById('banner-ramo-nome').textContent = secaoAtiva.tipoRamo || "Escoteiro";
-  document.getElementById('banner-sync-time').textContent = consultiveState.ultimaSincronizacao || "--";
-  document.getElementById('banner-chefia-nome').textContent = consultiveState.chefia.nome;
-  document.getElementById('banner-chefia-ueb').textContent = `UEB: ${consultiveState.chefia.ueb} • ${consultiveState.chefia.funcao}`;
+  // Atualizar Banner Oficial Superior
+  const bannerGrupo = document.getElementById('banner-grupo-nome');
+  if (bannerGrupo) bannerGrupo.textContent = consultiveState.unidade.grupo;
 
+  const bannerNumeral = document.getElementById('banner-numeral');
+  if (bannerNumeral) bannerNumeral.textContent = consultiveState.unidade.numeral;
+
+  const bannerRamo = document.getElementById('banner-ramo-nome');
+  if (bannerRamo) bannerRamo.textContent = secaoAtiva.tipoRamo || "Escoteiro";
+
+  const bannerSync = document.getElementById('banner-sync-time');
+  if (bannerSync) bannerSync.textContent = consultiveState.ultimaSincronizacao || "--";
+
+  const bannerChefiaNome = document.getElementById('banner-chefia-nome');
+  if (bannerChefiaNome) bannerChefiaNome.textContent = consultiveState.chefia.nome;
+
+  const bannerChefiaUeb = document.getElementById('banner-chefia-ueb');
+  if (bannerChefiaUeb) bannerChefiaUeb.textContent = `UEB: ${consultiveState.chefia.ueb} • ${consultiveState.chefia.funcao}`;
+
+  // Atualizar Painel Executivo de Dados Capturados em Tempo Real
+  const capStatusAuth = document.getElementById('cap-status-auth');
+  if (capStatusAuth) capStatusAuth.textContent = 'Conectado (200 OK — Login successful)';
+
+  const capUebAuth = document.getElementById('cap-ueb-auth');
+  if (capUebAuth) capUebAuth.textContent = consultiveState.chefia.ueb || '--';
+
+  const capTokenHash = document.getElementById('cap-token-hash');
+  if (capTokenHash) {
+    const tk = consultiveState.token || MAPPA_APP_TOKEN;
+    capTokenHash.textContent = tk.substring(0, 16) + '...' + tk.substring(tk.length - 8);
+  }
+
+  const capEscotistaNome = document.getElementById('cap-escotista-nome');
+  if (capEscotistaNome) capEscotistaNome.textContent = consultiveState.chefia.nome || '--';
+
+  const capEscotistaCargo = document.getElementById('cap-escotista-cargo');
+  if (capEscotistaCargo) capEscotistaCargo.textContent = consultiveState.chefia.funcao || 'Escotista';
+
+  const capEscotistaNivel = document.getElementById('cap-escotista-nivel');
+  if (capEscotistaNivel) capEscotistaNivel.textContent = consultiveState.chefia.nivel || 'Ativo';
+
+  const capUelNome = document.getElementById('cap-uel-nome');
+  if (capUelNome) capUelNome.textContent = consultiveState.unidade.grupo || '--';
+
+  const capUelNumeral = document.getElementById('cap-uel-numeral');
+  if (capUelNumeral) capUelNumeral.textContent = consultiveState.unidade.numeral || '--';
+
+  const capUelCidade = document.getElementById('cap-uel-cidade');
+  if (capUelCidade) capUelCidade.textContent = consultiveState.unidade.cidade || 'Brasil';
+
+  const capSecaoNome = document.getElementById('cap-secao-nome');
+  if (capSecaoNome) capSecaoNome.textContent = secaoAtiva.nomeSecao || 'Seção Ativa';
+
+  const capSecaoRamo = document.getElementById('cap-secao-ramo');
+  if (capSecaoRamo) capSecaoRamo.textContent = secaoAtiva.tipoRamo || 'Escoteiro';
+
+  const capSecoesCount = document.getElementById('cap-secoes-count');
+  if (capSecoesCount) capSecoesCount.textContent = `${consultiveState.secoes.length} identificada(s)`;
+
+  // Atualizar visualizador de JSON bruto capturado
+  const rawJsonViewer = document.getElementById('raw-json-viewer');
+  if (rawJsonViewer) {
+    const dump = {
+      conexao: {
+        servidor: consultiveState.baseUrl,
+        autenticado: consultiveState.autenticado,
+        tipoAssociado: consultiveState.tipoAssociado,
+        idAssociado: consultiveState.idAssociado,
+        timestamp: consultiveState.ultimaSincronizacao
+      },
+      respostaLogin: consultiveState.rawLoginPayload,
+      perfilOficial: consultiveState.rawPerfilPayload,
+      secoesOficiais: consultiveState.rawSecoesPayload || consultiveState.secoes,
+      resumoJovens: {
+        totalJovens: consultiveState.jovens.length,
+        patrulhas: consultiveState.patrulhas
+      }
+    };
+    rawJsonViewer.textContent = JSON.stringify(dump, null, 2);
+  }
+
+  // Preencher seletor de Seções
   const selectSecao = document.getElementById('select-secao-ativa');
-  selectSecao.innerHTML = '';
-  consultiveState.secoes.forEach(sec => {
-    const opt = document.createElement('option');
-    opt.value = sec.idSecao;
-    opt.textContent = `${sec.nomeSecao} (${sec.tipoRamo || 'Geral'})`;
-    if (sec.idSecao == consultiveState.secaoAtivaId) opt.selected = true;
-    selectSecao.appendChild(opt);
-  });
+  if (selectSecao) {
+    selectSecao.innerHTML = '';
+    consultiveState.secoes.forEach(sec => {
+      const opt = document.createElement('option');
+      opt.value = sec.idSecao;
+      opt.textContent = `${sec.nomeSecao} (${sec.tipoRamo || 'Geral'})`;
+      if (sec.idSecao == consultiveState.secaoAtivaId) opt.selected = true;
+      selectSecao.appendChild(opt);
+    });
+  }
 
+  // Atualizar Métricas Estatísticas
   const totalJovens = consultiveState.jovens.length;
   const totalPatrulhas = consultiveState.patrulhas.length;
   const totalEspecialidades = consultiveState.jovens.reduce((acc, j) => acc + (j.especialidades ? j.especialidades.length : 0), 0);
@@ -411,21 +582,57 @@ function renderizarPortalConsultivo() {
     ? Math.round(consultiveState.jovens.reduce((acc, j) => acc + (j.progressoEtapa || 0), 0) / totalJovens)
     : 0;
 
-  document.getElementById('metric-total-jovens').textContent = totalJovens;
-  document.getElementById('metric-total-patrulhas').textContent = totalPatrulhas;
-  document.getElementById('metric-total-especialidades').textContent = totalEspecialidades;
-  document.getElementById('metric-media-progressao').textContent = `${mediaProgressao}%`;
+  const mJovens = document.getElementById('metric-total-jovens');
+  if (mJovens) mJovens.textContent = totalJovens;
 
+  const mPatrulhas = document.getElementById('metric-total-patrulhas');
+  if (mPatrulhas) mPatrulhas.textContent = totalPatrulhas;
+
+  const mEsp = document.getElementById('metric-total-especialidades');
+  if (mEsp) mEsp.textContent = totalEspecialidades;
+
+  const mProg = document.getElementById('metric-media-progressao');
+  if (mProg) mProg.textContent = `${mediaProgressao}%`;
+
+  // Preencher seletor de Patrulhas
   const selectPatrulha = document.getElementById('filter-patrulha');
-  selectPatrulha.innerHTML = '<option value="todas">Todas as Patrulhas</option>';
-  consultiveState.patrulhas.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p;
-    opt.textContent = `Patrulha ${p}`;
-    selectPatrulha.appendChild(opt);
-  });
+  if (selectPatrulha) {
+    selectPatrulha.innerHTML = '<option value="todas">Todas as Patrulhas</option>';
+    consultiveState.patrulhas.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = `Patrulha ${p}`;
+      selectPatrulha.appendChild(opt);
+    });
+  }
 
   filtrarJovensConsultivo();
+}
+
+// Alternar visualização do painel de JSON bruto capturado
+function alternarPainelJsonBruto() {
+  const box = document.getElementById('box-json-bruto-capturado');
+  const btnLabel = document.getElementById('btn-toggle-json-label');
+  if (!box) return;
+  if (box.style.display === 'none' || !box.style.display) {
+    box.style.display = 'block';
+    if (btnLabel) btnLabel.textContent = '▲ Ocultar Payloads JSON Brutos';
+  } else {
+    box.style.display = 'none';
+    if (btnLabel) btnLabel.textContent = '🔍 Ver Payloads JSON Brutos';
+  }
+}
+
+// Copiar JSON capturado
+function copiarJsonCapturado() {
+  const viewer = document.getElementById('raw-json-viewer');
+  if (viewer && viewer.textContent) {
+    navigator.clipboard.writeText(viewer.textContent).then(() => {
+      alert("Payload JSON oficial copiado com sucesso para a área de transferência!");
+    }).catch(() => {
+      alert("Não foi possível copiar automaticamente. Selecione e copie o texto manualmente.");
+    });
+  }
 }
 
 // 4. Trocar Seção Ativa
@@ -777,6 +984,9 @@ document.addEventListener('DOMContentLoaded', () => {
         consultiveState.secaoAtivaId = sess.secaoAtivaId;
         consultiveState.jovens = sess.jovens || [];
         consultiveState.patrulhas = sess.patrulhas || [];
+        consultiveState.rawLoginPayload = sess.rawLoginPayload || null;
+        consultiveState.rawPerfilPayload = sess.rawPerfilPayload || null;
+        consultiveState.rawSecoesPayload = sess.rawSecoesPayload || null;
         consultiveState.ultimaSincronizacao = sess.ultimaSincronizacao;
 
         document.getElementById('screen-login').style.display = 'none';

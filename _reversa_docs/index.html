@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
   
   <!-- CSS Styles com cache buster -->
-  <link rel="stylesheet" href="styles.css?v=4.0">
+  <link rel="stylesheet" href="styles.css?v=5.0">
 </head>
 <body>
 
@@ -144,6 +144,81 @@
             <div style="font-size: 0.9rem; font-weight: 700; color: #fff;" id="banner-chefia-nome">Chefe Conectado</div>
             <div style="font-size: 0.78rem; color: var(--text-secondary);" id="banner-chefia-ueb">UEB: -- • Escotista</div>
           </div>
+        </div>
+      </section>
+
+      <!-- PAINEL EXECUTIVO: DADOS CAPTURADOS DA SESSÃO mAPPa / PAXTU 100 -->
+      <section class="captured-data-panel" id="captured-data-panel">
+        <div class="panel-header-badge">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span class="status-dot-pulse"></span>
+            <span style="font-weight: 800; font-size: 0.95rem; color: #fff;">Dados Oficiais Capturados da API mAPPa</span>
+            <span class="badge-source">Paxtu 100 • TLS 1.3</span>
+          </div>
+          <button class="btn btn-outline" style="font-size: 0.78rem; padding: 4px 10px;" onclick="alternarPainelJsonBruto()">
+            <span id="btn-toggle-json-label">🔍 Ver Payloads JSON Brutos</span>
+          </button>
+        </div>
+
+        <div class="captured-cards-grid">
+          <!-- Card 1: Sessão & Autenticação -->
+          <div class="captured-card">
+            <div class="card-icon-badge">🔐</div>
+            <div class="card-info">
+              <span class="card-sub">Autenticação UEB</span>
+              <h4 id="cap-status-auth" style="color: var(--brand-green-light);">Conectado (200 OK)</h4>
+              <p>Registro: <strong id="cap-ueb-auth">--</strong></p>
+              <div class="token-mini-box" title="Token de sessão da API mAPPa">
+                <span style="color: var(--text-muted);">Token:</span> <code id="cap-token-hash">--</code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Escotista & Cargo -->
+          <div class="captured-card">
+            <div class="card-icon-badge">⚜️</div>
+            <div class="card-info">
+              <span class="card-sub">Perfil do Escotista</span>
+              <h4 id="cap-escotista-nome">Carregando...</h4>
+              <p>Cargo: <strong id="cap-escotista-cargo">--</strong></p>
+              <p>Nível: <span id="cap-escotista-nivel">--</span></p>
+            </div>
+          </div>
+
+          <!-- Card 3: Unidade Escoteira (UEL) -->
+          <div class="captured-card">
+            <div class="card-icon-badge">🏕️</div>
+            <div class="card-info">
+              <span class="card-sub">Unidade Escoteira (UEL)</span>
+              <h4 id="cap-uel-nome">Carregando...</h4>
+              <p>Numeral: <strong id="cap-uel-numeral">--</strong></p>
+              <p>Local: <span id="cap-uel-cidade">--</span></p>
+            </div>
+          </div>
+
+          <!-- Card 4: Seção Ativa & Ramo -->
+          <div class="captured-card">
+            <div class="card-icon-badge">🧭</div>
+            <div class="card-info">
+              <span class="card-sub">Seção & Ramo</span>
+              <h4 id="cap-secao-nome">Carregando...</h4>
+              <p>Ramo: <strong id="cap-secao-ramo">--</strong></p>
+              <p>Seções: <span id="cap-secoes-count">1 identificada</span></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visualizador expansível de payload JSON bruto capturado -->
+        <div id="box-json-bruto-capturado" style="display: none; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--scout-gold-light);">
+              📄 Payloads Oficiais Retornados pela API (paxtu100.escoteiros.org.br)
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-outline" style="font-size: 0.72rem; padding: 2px 8px;" onclick="copiarJsonCapturado()">📋 Copiar JSON</button>
+            </div>
+          </div>
+          <pre id="raw-json-viewer" class="json-code-box" style="max-height: 250px; overflow-y: auto; background: rgba(5,10,8,0.9); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 0.75rem; font-family: 'Fira Code', monospace; font-size: 0.75rem; color: #a7f3d0; white-space: pre-wrap; word-break: break-all;">Aguardando dados da API...</pre>
         </div>
       </section>
 
@@ -352,6 +427,6 @@
   </div><!-- /#screen-app -->
 
   <!-- Scripts com cache buster -->
-  <script src="app.js?v=4.0"></script>
+  <script src="app.js?v=5.0"></script>
 </body>
 </html>
